@@ -1,6 +1,8 @@
-package service
+package api
 
 import (
+	// "ads/model"
+	"ads/service"
 	"dbclient"
 	"encoding/json"
 	"fmt"
@@ -15,7 +17,7 @@ import (
 )
 
 var DBClient dbclient.IBoltClient
-var MysqlClient dbclient.IMysqlClient
+var MysqlClient service.IAdsClient
 
 type Sizer interface {
 	Size() int64
@@ -42,6 +44,18 @@ func GetAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func GetAd(w http.ResponseWriter, r *http.Request) {
+	var adId, _ = strconv.Atoi(mux.Vars(r)["adId"])
+	data := MysqlClient.GetAdById(int64(adId))
+
+	ret, _ := json.Marshal(data)
+
+	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Content-Length", strconv.Itoa(12))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(ret))
 }
 
 func UploadAds(w http.ResponseWriter, r *http.Request) {

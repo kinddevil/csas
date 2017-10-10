@@ -4,53 +4,63 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"reflect"
 	"strconv"
-	"sync"
-	"time"
+	"strings"
+	// "sync"
+	// "time"
 )
 
-var (
-	mysqlClient *MysqlClient
-	monce       sync.Once
-)
+// var (
+// 	mysqlClient *MysqlClient
+// 	monce       sync.Once
+// )
 
 type IMysqlClient interface {
-	Open()
+	Init(dbUrl string)
+	Open(dbUrl string)
 	Close()
 	Ping()
+	MaxConns(int)
+	MaxIdleConns(int)
 	Seed()
 }
 
 type MysqlClient struct {
-	db *sql.DB
+	Db *sql.DB
 }
 
-func InitMysql() *MysqlClient {
-	monce.Do(func() {
-		mysqlClient = &MysqlClient{}
-	})
-	return mysqlClient
+func (client *MysqlClient) Init(dbUrl string) {
+	client.Open(dbUrl)
+	client.MaxConns(5)
+	client.MaxIdleConns(5)
+	client.Ping()
 }
 
-func (client *MysqlClient) Open() {
+func (client *MysqlClient) Open(dbUrl string) {
 	var err error
-	client.db, err = sql.Open("mysql", "user:pass@tcp(localhost:3306)/db?charset=utf8&parseTime=true")
-	// client.db, err = sql.Open("mysql", "casuser:Cassuser365@tcp(db4free.net:3306)/db?charset=utf8&parseTime=true")
+	client.Db, err = sql.Open("mysql", dbUrl)
 	if err != nil {
 		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
 	}
-	client.db.SetMaxOpenConns(5)
-	client.db.SetMaxIdleConns(5)
+}
+
+func (client *MysqlClient) MaxConns(num int) {
+	client.Db.SetMaxOpenConns(num)
+}
+
+func (client *MysqlClient) MaxIdleConns(num int) {
+	client.Db.SetMaxIdleConns(num)
 }
 
 func (client *MysqlClient) Close() {
-	if client.db != nil {
-		client.db.Close()
+	if client.Db != nil {
+		client.Db.Close()
 	}
 }
 
 func (client *MysqlClient) Ping() {
-	err := client.db.Ping()
+	err := client.Db.Ping()
 	if err != nil {
 		panic(err.Error()) // proper error handling instead of panic in your app
 	}
@@ -58,101 +68,89 @@ func (client *MysqlClient) Ping() {
 
 func (client *MysqlClient) Seed() {
 	// RowsAffected changes, err := ret.RowsAffected()
-	stmtOut0, _ := client.db.Prepare("CREATE TABLE IF NOT EXISTS users_test (id bigint primary key, name text)")
-	stmtOut1, _ := client.db.Prepare("truncate table users_test")
+	stmtOut0, _ := client.Db.Prepare("CREATE TABLE IF NOT EXISTS users_test (id bigint primary key, name text)")
+	stmtOut1, _ := client.Db.Prepare("truncate table users_test")
 	stmtOut0.Exec()
 	stmtOut1.Exec()
-	tx, _ := client.db.Begin()
+	tx, _ := client.Db.Begin()
 	for i := 0; i < 100; i++ {
 		sql := "insert into users_test value(" + strconv.Itoa(i) + ", 'user00" + strconv.Itoa(i) + "')"
 		fmt.Println(sql)
 		stmtOut2, _ := tx.Prepare(sql)
 		stmtOut2.Exec()
 	}
+	stmtOut3, _ := tx.Prepare("insert into users_test(id) value(1001)")
+	stmtOut3.Exec()
 	tx.Commit()
 }
 
-func test() {
-	db, err := sql.Open("mysql", "user:pass@tcp(localhost:3306)/db?charset=utf8&parseTime=true")
+func Query(tx *sql.Tx, sqlStr string, parseFun func(map[string]string) interface{}, args ...interface{}) []interface{} {
+	//Return slice of interface
+	fmt.Println(tx, sqlStr, parseFun)
+	ret := []interface{}{}
 
-	if err != nil {
-		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
-	}
-	defer db.Close()
-	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(5)
-
-	// Open doesn't open a connection. Validate DSN data:
-	err = db.Ping()
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-
-	tx, err := db.Begin()
-
-	stmtOut, err := tx.Prepare("SELECT id FROM user WHERE name = ?")
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
+	// fmt.Println("ret...", ret, unsafe.Sizeof(ret[0]), unsafe.Sizeof(1), unsafe.Sizeof(true))
+	stmtOut, err := tx.Prepare(sqlStr)
+	checkErr(err)
 	defer stmtOut.Close()
 
-	var id int                              // we "scan" the result in here// Query the square-number of 13
-	err = stmtOut.QueryRow("bar").Scan(&id) // WHERE number = 13
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-	fmt.Printf("The id 1 is: %d \n", id)
-
-	// Execute the query
-	rows, err := tx.Query("SELECT * FROM user")
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-
-	// Get column names
+	rows, err := stmtOut.Query(args...)
+	checkErr(err)
 	columns, err := rows.Columns()
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-
-	// Make a slice for the values
+	checkErr(err)
 	values := make([]sql.RawBytes, len(columns))
 
-	// rows.Scan wants '[]interface{}' as an argument, so we must copy the
-	// references into such a slice
-	// See http://code.google.com/p/go-wiki/wiki/InterfaceSlice for details
 	scanArgs := make([]interface{}, len(values))
 	for i := range values {
 		scanArgs[i] = &values[i]
 	}
 
-	// Fetch rows
 	for rows.Next() {
 		// get RawBytes from data
 		err = rows.Scan(scanArgs...)
-		if err != nil {
-			panic(err.Error()) // proper error handling instead of panic in your app
-		}
+		checkErr(err)
 
-		// Now do something with the data.
-		// Here we just print each column as a string.
-		var value string
+		mrow := make(map[string]string)
 		for i, col := range values {
-			// Here we can check if the value is nil (NULL value)
-			if col == nil {
-				value = "NULL"
-			} else {
-				value = string(col)
-			}
-			fmt.Println(columns[i], ": ", value)
+			mrow[columns[i]] = string(col)
+
+			// TODO: Null Handler
+			// if col == nil {
+			// 	value = ""
+			// } else {
+			// 	value = string(col)
+			// }
 		}
-		fmt.Println("-----------------------------------")
+		if parseFun == nil {
+			ret = append(ret, mrow)
+		} else {
+			obj := parseFun(mrow)
+			ret = append(ret, obj)
+		}
 	}
-	if err = rows.Err(); err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
+	checkErr(rows.Err())
+	// fmt.Println("ret...", ret, len(ret), cap(ret), unsafe.Sizeof(ret[0]), unsafe.Sizeof(1), unsafe.Sizeof(true))
+	return ret
+}
+
+func GetFieldMap(obj interface{}) (ret map[string]string) {
+	val := reflect.ValueOf(obj).Elem()
+	ret = make(map[string]string)
+	for i := 0; i < val.NumField(); i++ {
+		typeField := val.Type().Field(i)
+		key := strings.ToLower(typeField.Name)
+		if typeField.PkgPath != "" {
+			// Private method
+			continue
+		} else {
+			ret[key] = typeField.Name
+		}
 	}
+	return
+}
 
-	tx.Commit()
-
-	time.Sleep(10000 * time.Millisecond)
+func checkErr(err error) {
+	if err != nil {
+		panic(err.Error()) // TODO: proper error handling
+	}
 }
