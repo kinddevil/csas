@@ -3,12 +3,15 @@ package main
 import (
 	"ads/api"
 	"ads/service"
+	// "os"
 	// "dbclient"
-	"eureka"
-	// "fmt"
 	cfg "ads/config"
+	"eureka"
+	"fmt"
+	"localLog"
 	"log"
 	"sync"
+	// "time"
 	"webserver"
 )
 
@@ -24,19 +27,25 @@ func main() {
 	eurekaAddr := envs["eurekaAddr"]
 	ip := envs["localIp"]
 
+	go localLog.RegesterLog(envs["logPath"])
+
 	log.Printf("Starting %v\n", appName)
 
-	initiallizeMysqlClient()
+	initiallizeMysqlClient(envs["mysqlUrl"])
 
 	go startService(port) // Starts HTTP service  (async)
 	log.Println("Starting HTTP service at " + port)
+	fmt.Println("Starting HTTP service at " + port)
 
-	appId := eureka.Register(ip, port, appName, eurekaAddr) // Performs Eureka registration
-	log.Println(appId)
+	if envs["eureka"] == "true" {
 
-	eureka.HandleSigterm(appName, appId) // Handle graceful shutdown on Ctrl+C or kill
+		appId := eureka.Register(ip, port, appName, eurekaAddr) // Performs Eureka registration
+		log.Println(appId)
 
-	go eureka.StartHeartbeat(appName, appId) // Performs Eureka heartbeating (async)
+		eureka.HandleSigterm(appName, appId) // Handle graceful shutdown on Ctrl+C or kill
+
+		go eureka.StartHeartbeat(appName, appId) // Performs Eureka heartbeating (async)
+	}
 
 	// Block...
 	wg := sync.WaitGroup{} // Use a WaitGroup to block main() exit
@@ -48,12 +57,13 @@ func startService(port string) {
 	webserver.StartWebServer(port, &api.Routes)
 }
 
-func initiallizeMysqlClient() {
+func initiallizeMysqlClient(dbUrl string) {
 	monce.Do(func() {
 		api.MysqlClient = &service.AdsClient{}
 	})
-	api.MysqlClient.Init("user:pass@tcp(localhost:3306)/db?charset=utf8&parseTime=true")
+	api.MysqlClient.Init(dbUrl)
 	api.MysqlClient.Seed()
+	api.MysqlClient.SetupDb()
 }
 
 func destructMysqlClient() {

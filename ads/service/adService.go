@@ -7,19 +7,26 @@ import (
 	"fmt"
 	// "github.com/gorilla/mux"
 	// "io"
+	// "io/ioutil"
 	// "log"
 	// "net/http"
 	// "os"
-	// "strconv"
+	"strconv"
 	// "html/template"
 	"reflect"
 	"strings"
 	// "net"
 )
 
+var tableAd string = "advertising"
+
 type IAdsClient interface {
 	dbclient.IMysqlClient
+	InsertAd(imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool
+	UpdateAd(id int, imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool
 	GetAdById(id int64) []interface{}
+	GetAllAds(page, items int) []interface{}
+	SetupDb()
 }
 
 type AdsClient struct {
@@ -92,11 +99,74 @@ func (client *AdsClient) Query(sqlStr string, args ...interface{}) {
 func (client *AdsClient) GetAdById(id int64) (ret []interface{}) {
 	// client.Query(sqlStr, 0)
 	GetFieldMap(&UserInfo{1, "name", "other"})
+	ret = dbclient.Query(client.Db, "select * from users_test", nil)
+	return
+}
+
+func (client *AdsClient) InsertAd(imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool {
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
 	}
-	ret = dbclient.Query(tx, "select * from users_test", nil)
+	sql, vals := dbclient.BuildInsert(tableAd, dbclient.ParamsPairs(
+		"img", imageName,
+		"link", imageLink,
+		"province", province,
+		"city", city,
+		"display_pages", displayPages,
+		"title", title,
+	),
+	)
+	ret := dbclient.Exec(tx, sql, vals...)
+	fmt.Println(ret)
 	tx.Commit()
+	return true
+}
+
+func (client *AdsClient) UpdateAd(id int, imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool {
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	sql, vals := dbclient.BuildUpdate(tableAd, dbclient.ParamsPairs(
+		"img", imageName,
+		"link", imageLink,
+		"province", province,
+		"city", city,
+		"display_pages", displayPages,
+		"title", title,
+	), dbclient.ParamsPairs(
+		"id", id,
+	),
+	)
+	ret := dbclient.Exec(tx, sql, vals...)
+	fmt.Println(ret)
+	tx.Commit()
+	return true
+}
+
+func (client *AdsClient) GetAllAds(page, items int) (ret []interface{}) {
+	if page == 0 {
+		ret = dbclient.Query(client.Db, "select * from "+tableAd, nil)
+	} else {
+		offset := page * items
+		ret = dbclient.Query(client.Db, "select * from "+tableAd+" limit ? offset ? ", nil, strconv.Itoa(items), strconv.Itoa(offset))
+	}
 	return
+}
+
+func (client *AdsClient) UploadFile() {
+
+}
+
+func (client *AdsClient) SetupDb() {
+	// fmt.Println("setupdb...")
+	// dir, _ := os.Getwd()
+	// data, _ := ioutil.ReadFile(dir + "/config/sql")
+
+	// sql := string(data)
+
+	// stmtOut, _ := client.Db.Prepare(sql)
+	// ret, err := stmtOut.Exec()
+	// fmt.Println(ret, err)
 }

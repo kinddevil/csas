@@ -15,16 +15,37 @@ var Routes = webserver.Routes{
 	},
 
 	webserver.Route{
-		"GetAd",       // Name
-		"GET",         // HTTP method
-		"/ads/{adId}", // Route pattern
-		GetAd,
+		"GetAdById",  // Name
+		"GET",        // HTTP method
+		"/ad/{adId}", // Route pattern
+		GetAdById,
 	},
 
 	webserver.Route{
-		"AdsUpload",   // Name
-		"POST",        // HTTP method
-		"/ads/upload", // Route pattern
-		UploadAds,
+		"GetAds", // Name
+		"GET",    // HTTP method
+		"/ads",   // Route pattern
+		GetAds,
+	},
+
+	webserver.Route{
+		"InsertAd", // Name
+		"POST",     // HTTP method
+		"/ad",      // Route pattern
+		InsertAd,
+	},
+
+	webserver.Route{
+		"InsertAd", // Name
+		"PUT",      // HTTP method
+		"/ad",      // Route pattern
+		UpdateAd,
+	},
+
+	webserver.Route{
+		"AdsUpload",         // Name
+		"POST",              // HTTP method
+		"/ad/{adId}/upload", // Route pattern
+		UploadAd,
 	},
 }
