@@ -3,6 +3,7 @@ package service
 import (
 	"dbclient"
 	// "encoding/json"
+	cfg "ads/config"
 	"database/sql"
 	"fmt"
 	// "github.com/gorilla/mux"
@@ -250,7 +251,7 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	ret["click_count"] = m["click"]
 
 	if ret["preview_url"] != "" {
-		ret["preview_url"] = "/advertising" + "/assets/adimg/" + m["name"]
+		ret["preview_url"] = cfg.Prefix + "/assets/adimg/" + m["name"]
 	}
 
 	if m["pending"] == "1" {
