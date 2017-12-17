@@ -85,12 +85,12 @@ func (client *MysqlClient) Seed() {
 	tx.Commit()
 }
 
-func Exec(tx *sql.Tx, sqlStr string, args ...interface{}) *sql.Rows {
+func Exec(tx *sql.Tx, sqlStr string, args ...interface{}) sql.Result {
 	stmtOut, err := tx.Prepare(sqlStr)
 	checkErr(err)
 	defer stmtOut.Close()
 
-	ret, err := stmtOut.Query(args...)
+	ret, err := stmtOut.Exec(args...)
 	checkErr(err)
 	return ret
 }
@@ -250,6 +250,7 @@ func BuildUpdate(tableName string, pairsVal map[string]interface{}, pairsCond ma
 	targets := make([]string, 0, lenVal)
 	conds := make([]string, 0, lenCond)
 
+	// TODO:eliminate null values
 	for k, v := range pairsVal {
 		// targets = append(targets, fmt.Sprintf("%s=?", k))
 		targets = append(targets, k+"=?")

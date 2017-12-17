@@ -3,10 +3,13 @@ package api
 import (
 	"ads/model"
 	"ads/service"
+	// "baseinfo"
 	"dbclient"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	// "hash/fnv"
+	// fnv.New32a() h.Sum32() https://play.golang.org/p/_J2YysdEqE
 	"io"
 	"log"
 	"net/http"
@@ -52,27 +55,64 @@ func GetAccount(w http.ResponseWriter, r *http.Request) {
 func InsertAd(w http.ResponseWriter, r *http.Request) {
 	ad := new(model.Advertising)
 	log.Println(ad)
-	log.Println(r.Body)
-	err := json.NewDecoder(r.Body).Decode(&ad)
+	log.Println("insert body...", r.Body)
+	err := json.NewDecoder(r.Body).Decode(ad)
 	log.Println(err)
+	log.Println("json decoded...", ad)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if err = ad.CheckAd(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	fmt.Println(ad)
-	ret := MysqlClient.InsertAd(ad.ImageName, ad.ImageLink, ad.SchoolIds, ad.Province, ad.City, ad.Title, ad.DisplayPages)
-	fmt.Println("insert ret...", ret)
+	// title, province, city, startTime, expireTime, schoolIds string, isAnonymous/login, isSchool, isTeacher, isStudent bool
+	ret, succ := MysqlClient.InsertAd(ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
+	adId, _ := ret.LastInsertId()
+	fmt.Println("insert ret...", ret, succ)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strconv.FormatBool(ret)))
+	if succ {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(strconv.FormatInt(adId, 10)))
+	} else {
+		w.WriteHeader(503)
+		w.Write([]byte(strconv.Itoa(-1)))
+	}
 }
 
 func UpdateAd(w http.ResponseWriter, r *http.Request) {
-	ret := MysqlClient.UpdateAd(1, "test", "test", "1,2,3", "bj", "bj", "cahnge test ad", 1)
-	fmt.Println("update ret...", ret)
+	ad := new(model.Advertising)
+	log.Println(ad)
+	log.Println("insert body...", r.Body)
+	err := json.NewDecoder(r.Body).Decode(ad)
+	log.Println(err)
+	log.Println("json decoded...", ad)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err = ad.CheckAd(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Println(ad)
+
+	ret, succ := MysqlClient.UpdateAd(ad.Id, ad.Pending, ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
+	affected, _ := ret.RowsAffected()
+	log.Println("affected...", affected)
+	fmt.Println("update ret...", ret, succ)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strconv.FormatBool(ret)))
+	if succ && affected >= 0 {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("1"))
+	} else {
+		w.WriteHeader(503)
+		w.Write([]byte("-1"))
+	}
 }
 
 func GetAdById(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +128,11 @@ func GetAdById(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAds(w http.ResponseWriter, r *http.Request) {
+	// if username := baseinfo.GetUsernameFromHeader(r); username == "" {
+	// 	w.WriteHeader(http.StatusUnauthorized)
+	// 	return
+	// }
+
 	queries := r.URL.Query()
 	log.Println("queries...", queries)
 	page, _ := strconv.Atoi(queries.Get("page"))
@@ -104,9 +149,20 @@ func GetAds(w http.ResponseWriter, r *http.Request) {
 }
 
 func UploadAd(w http.ResponseWriter, r *http.Request) {
+	// username := baseinfo.GetUsernameFromHeader(r)
+	// if username == "" {
+	// 	w.WriteHeader(http.StatusUnauthorized)
+	// 	return
+	// }
+
+	// sid, _, _ := MysqlClient.GetBaseInfo(username)
+	// sidS := strconv.FormatInt(sid, 10)
+	fname := ""
+
 	var adId, _ = strconv.Atoi(mux.Vars(r)["adId"])
 	log.Println(adId)
 
+	// Start upload files...
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		log.Println("parse body error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -122,6 +178,7 @@ func UploadAd(w http.ResponseWriter, r *http.Request) {
 		log.Println("upload file...", files[i])
 		file := files[i]
 		fileName := strings.ToLower(file.Filename)
+		fname = fileName
 		log.Println(fileName)
 
 		if match, _ := regexp.MatchString("\\.(png|jpeg|jpg)$", fileName); !match {
@@ -157,8 +214,23 @@ func UploadAd(w http.ResponseWriter, r *http.Request) {
 		//TODO: support multiple upload with checks
 		break
 	}
+	// End upload files...
+
+	log.Println("filename...", fname)
+
+	if adId <= 0 {
+		log.Println("No ads for files, create new ad item")
+		ret, _ := MysqlClient.InsertEmptyAd()
+		aid, _ := ret.LastInsertId()
+		adId = int(aid)
+	}
+
+	MysqlClient.SaveUploadFiles(adId, fname)
+	// fileRet, _ := MysqlClient.SaveUploadFiles(adId, fname)
+	// log.Println(fileRet.LastInsertId())
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(strconv.Itoa(adId)))
 	return
 }
 

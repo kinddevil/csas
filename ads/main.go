@@ -54,7 +54,7 @@ func main() {
 }
 
 func startService(port string) {
-	webserver.StartWebServer(port, &api.Routes)
+	webserver.StartWebServer(port, &api.Routes, api.Prefix)
 }
 
 func initiallizeMysqlClient(dbUrl string) {

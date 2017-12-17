@@ -7,14 +7,18 @@ import (
 	"fmt"
 	// "github.com/gorilla/mux"
 	// "io"
+	"baseinfo"
 	// "io/ioutil"
-	// "log"
+	"log"
 	// "net/http"
 	// "os"
 	"strconv"
 	// "html/template"
+	"github.com/satori/go.uuid"
+	// return uuid.NewV4().String()
 	"reflect"
 	"strings"
+	// "time"
 	// "net"
 )
 
@@ -22,10 +26,14 @@ var tableAd string = "advertising"
 
 type IAdsClient interface {
 	dbclient.IMysqlClient
-	InsertAd(imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool
-	UpdateAd(id int, imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool
+	InsertAd(title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
+	UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
 	GetAdById(id int64) []interface{}
 	GetAllAds(page, items int) []interface{}
+	InsertEmptyAd() (sql.Result, bool)
+	SaveUploadFiles(adId int, filename string) (sql.Result, bool)
+	GetBaseInfo(username string) (int64, string, string)
+
 	SetupDb()
 }
 
@@ -96,45 +104,106 @@ func (client *AdsClient) Query(sqlStr string, args ...interface{}) {
 	tx.Commit()
 }
 
-func (client *AdsClient) GetAdById(id int64) (ret []interface{}) {
-	// client.Query(sqlStr, 0)
-	GetFieldMap(&UserInfo{1, "name", "other"})
-	ret = dbclient.Query(client.Db, "select * from users_test", nil)
-	return
-}
+// isAnonymous for login
+func (client *AdsClient) InsertAd(title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
+	// bitwise: 0: Anonymous 1 School 2 teacher 3 student
+	log.Println("status...", isAnonymous, isSchool, isTeacher, isStudent)
+	displayPages := 0
+	if isAnonymous {
+		displayPages = displayPages | 1
+	}
+	if isSchool {
+		displayPages = displayPages | 1<<1
+	}
+	if isTeacher {
+		displayPages = displayPages | 1<<2
+	}
+	if isStudent {
+		displayPages = displayPages | 1<<3
+	}
 
-func (client *AdsClient) InsertAd(imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool {
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
 	}
+	log.Println("time...", startTime, expireTime)
 	sql, vals := dbclient.BuildInsert(tableAd, dbclient.ParamsPairs(
-		"img", imageName,
-		"link", imageLink,
+		"title", title,
 		"province", province,
 		"city", city,
+		"start_time", startTime,
+		"expire_time", expireTime,
+		"school_ids", schoolIds,
 		"display_pages", displayPages,
-		"title", title,
 	),
 	)
 	ret := dbclient.Exec(tx, sql, vals...)
 	fmt.Println(ret)
 	tx.Commit()
-	return true
+	return ret, true
 }
 
-func (client *AdsClient) UpdateAd(id int, imageName, imageLink, schoolIds, province, city, title string, displayPages int) bool {
+func (client *AdsClient) InsertEmptyAd() (sql.Result, bool) {
+	sql, vals := dbclient.BuildInsert(tableAd, dbclient.ParamsPairs(
+		"title", "",
+	),
+	)
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	ret := dbclient.Exec(tx, sql, vals...)
+	fmt.Println(ret)
+	tx.Commit()
+	return ret, true
+}
+
+func (client *AdsClient) SaveUploadFiles(adId int, filename string) (sql.Result, bool) {
+	sql, vals := dbclient.BuildInsert("ads_files", dbclient.ParamsPairs(
+		"id", uuid.NewV4().String(),
+		"advertising_id", adId,
+		"name", filename,
+	),
+	)
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	ret := dbclient.Exec(tx, sql, vals...)
+	fmt.Println(ret)
+	tx.Commit()
+	return ret, true
+}
+
+func (client *AdsClient) UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
+	// bitwise: 0: Anonymous 1 School 2 teacher 3 student
+	displayPages := 0
+	if isAnonymous {
+		displayPages = displayPages & 1
+	}
+	if isSchool {
+		displayPages = displayPages & (1 >> 1)
+	}
+	if isTeacher {
+		displayPages = displayPages & (1 >> 2)
+	}
+	if isStudent {
+		displayPages = displayPages & (1 >> 3)
+	}
+
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
 	}
 	sql, vals := dbclient.BuildUpdate(tableAd, dbclient.ParamsPairs(
-		"img", imageName,
-		"link", imageLink,
+		"title", title,
 		"province", province,
 		"city", city,
+		"start_time", startTime,
+		"expire_time", expireTime,
+		"school_ids", schoolIds,
 		"display_pages", displayPages,
-		"title", title,
+		"pending", pending,
 	), dbclient.ParamsPairs(
 		"id", id,
 	),
@@ -142,17 +211,82 @@ func (client *AdsClient) UpdateAd(id int, imageName, imageLink, schoolIds, provi
 	ret := dbclient.Exec(tx, sql, vals...)
 	fmt.Println(ret)
 	tx.Commit()
-	return true
+	return ret, true
+}
+
+func formatAdsResultSet(m map[string]string) interface{} {
+	ret := map[string]interface{}{}
+	log.Println("query ad return...", m)
+
+	ret["id"] = m["id"]
+	ret["title"] = m["title"]
+	ret["from"] = m["start_time"]
+	ret["to"] = m["expire_time"]
+	ret["school_ids"] = m["school_ids"]
+
+	ret["on_login_page"] = false
+	ret["on_school_page"] = false
+	ret["on_teacher_page"] = false
+	ret["on_student_page"] = false
+
+	display, _ := strconv.Atoi(m["display_pages"])
+	if display&1 == 1 {
+		ret["on_login_page"] = true
+	}
+
+	if display&(1<<1) == 2 {
+		ret["on_login_page"] = true
+	}
+
+	if display&(1<<2) == 4 {
+		ret["on_login_page"] = true
+	}
+
+	if display&(1<<3) == 8 {
+		ret["on_login_page"] = true
+	}
+
+	ret["view_count"] = m["view"]
+	ret["click_count"] = m["click"]
+
+	if ret["preview_url"] != "" {
+		ret["preview_url"] = "/advertising" + "/assets/adimg/" + m["name"]
+	}
+
+	if m["pending"] == "1" {
+		ret["is_lock"] = true
+	} else {
+		ret["is_lock"] = false
+	}
+
+	return ret
+}
+
+func (client *AdsClient) GetAdById(id int64) (ret []interface{}) {
+	// client.Query(sqlStr, 0)
+
+	GetFieldMap(&UserInfo{1, "name", "other"})
+	ret = dbclient.Query(client.Db, "select ad.*, file.name from "+tableAd+" ad left join ads_files file on ad.id = file.advertising_id where ad.id = ?", formatAdsResultSet, id)
+	ret = ret[:1]
+	return
 }
 
 func (client *AdsClient) GetAllAds(page, items int) (ret []interface{}) {
+
+	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
+	// log.Println("school info...", sid, sname, utype)
+
 	if page == 0 {
-		ret = dbclient.Query(client.Db, "select * from "+tableAd, nil)
+		ret = dbclient.Query(client.Db, "select * from "+tableAd, formatAdsResultSet)
 	} else {
 		offset := page * items
-		ret = dbclient.Query(client.Db, "select * from "+tableAd+" limit ? offset ? ", nil, strconv.Itoa(items), strconv.Itoa(offset))
+		ret = dbclient.Query(client.Db, "select * from "+tableAd+" limit ? offset ? ", formatAdsResultSet, strconv.Itoa(items), strconv.Itoa(offset))
 	}
 	return
+}
+
+func (client *AdsClient) GetBaseInfo(username string) (int64, string, string) {
+	return baseinfo.GetSchoolInfoFromUser(client.Db, username)
 }
 
 func (client *AdsClient) UploadFile() {
