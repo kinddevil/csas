@@ -18,6 +18,9 @@
     },
     "leaseInfo": {
       "evictionDurationInSecs": 90
+    },
+    "metadata": {
+      "instanceId" : "${appName}:${instanceId}"
     }
   }
 }
