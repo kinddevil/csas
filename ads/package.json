@@ -1,0 +1,36 @@
+{
+  "name": "ads",
+  "version": "0.0.1",
+  "description": "cas advertising",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kinddevil/csas.git"
+  },
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=6.9.2",
+    "npm": ">=5.3.0"
+  },
+  "scripts": {
+    "install": "go get",
+    "start": "go run main.go",
+    "pre-build": "_hooks/pre-push",
+    "build": "_hooks/pre-push && go build",
+    "test": "go test ./...",
+    "coverage": "go test ./... -cover",
+    "bench": "go test -bench=. ./...",
+    "coverage:watch": "watch 'npm run coverage'",
+    "tdd": "watch 'npm run test'",
+    "deploy": "./deploy.sh",
+    "deploy:staging": "./deploy.sh staging",
+    "deploy:production": "./deploy.sh production",
+    "push": "./docker/build.sh"
+  },
+  "pre-push": [
+    "pre-build"
+  ],
+  "dependencies": {
+    "pre-push": "^0.1.1",
+    "watch": "^1.0.2"
+  }
+}

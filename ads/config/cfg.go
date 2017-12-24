@@ -17,10 +17,20 @@ var configs map[string]map[string]string = map[string]map[string]string{
 		// "eurekaAddr": "http://10.88.215.157",
 		"localIp":  "127.0.0.1",
 		"mysqlUrl": "user:pass@tcp(localhost:3306)/cas?charset=utf8&parseTime=false",
+		// "mysqlUrl": "user:pass@tcp(docker.for.mac.localhost:3306)/cas?charset=utf8&parseTime=false",
 		// "logPath":    "log.log",
 		"eureka": "false",
 	},
-	"prod": nil,
+	"prod": map[string]string{
+		"env":        "dev",
+		"port":       "6767",
+		"appName":    "cas-ads",
+		"eurekaAddr": "http://10.16.156.36:8761",
+		"localIp":  "10.16.156.36",
+		"mysqlUrl": "user:pass@tcp(10.16.156.36:3306)/cas?charset=utf8&parseTime=false",
+		// "logPath":    "log.log",
+		"eureka": "true",
+	},
 }
 
 func GetEnv() map[string]string {
