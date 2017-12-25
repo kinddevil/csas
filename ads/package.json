@@ -21,10 +21,8 @@
     "bench": "go test -bench=. ./...",
     "coverage:watch": "watch 'npm run coverage'",
     "tdd": "watch 'npm run test'",
-    "deploy": "./deploy.sh",
-    "deploy:staging": "./deploy.sh staging",
-    "deploy:production": "./deploy.sh production",
-    "push": "./docker/build.sh"
+    "deploy": "./docker/build.sh",
+    "deploy:push": "./docker/build.sh push"
   },
   "pre-push": [
     "pre-build"

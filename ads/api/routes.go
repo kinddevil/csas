@@ -36,7 +36,7 @@ var Routes = webserver.Routes{
 	},
 
 	webserver.Route{
-		"InsertAd", // Name
+		"UpdateAd", // Name
 		"PUT",      // HTTP method
 		"/ad",      // Route pattern
 		UpdateAd,

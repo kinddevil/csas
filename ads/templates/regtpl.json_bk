@@ -1,9 +1,14 @@
 {
   "instance": {
+    "instanceId": "${appName}:${instanceId}",
     "hostName":"${ipAddress}",
     "app":"${appName}",
     "ipAddr":"${ipAddress}",
-    "vipAddress":"${vipAddress}",
+    // "vipAddress":"${vipAddress}",
+
+    "vipAddress":"${appName}",
+    "secureVipAddress":"${appName}",
+
     "secureVipAddress": null,
     "status":"UP",
     "port": {"$": "${port}", "@enabled": "true"},

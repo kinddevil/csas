@@ -180,17 +180,19 @@ func (client *AdsClient) UpdateAd(id, pending int, title, province, city, startT
 	// bitwise: 0: Anonymous 1 School 2 teacher 3 student
 	displayPages := 0
 	if isAnonymous {
-		displayPages = displayPages & 1
+		displayPages = displayPages | 1
 	}
 	if isSchool {
-		displayPages = displayPages & (1 >> 1)
+		displayPages = displayPages | (1 << 1)
 	}
 	if isTeacher {
-		displayPages = displayPages & (1 >> 2)
+		displayPages = displayPages | (1 << 2)
 	}
 	if isStudent {
-		displayPages = displayPages & (1 >> 3)
+		displayPages = displayPages | (1 << 3)
 	}
+
+	log.Println("display pages...", displayPages, isAnonymous, isSchool, isTeacher, isStudent)
 
 	tx, err := client.Db.Begin()
 	if err != nil {
@@ -231,26 +233,28 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	ret["on_student_page"] = false
 
 	display, _ := strconv.Atoi(m["display_pages"])
+	log.Println("display pages...", display)
 	if display&1 == 1 {
 		ret["on_login_page"] = true
 	}
 
 	if display&(1<<1) == 2 {
-		ret["on_login_page"] = true
+		ret["on_school_page"] = true
 	}
 
 	if display&(1<<2) == 4 {
-		ret["on_login_page"] = true
+		ret["on_teacher_page"] = true
 	}
 
 	if display&(1<<3) == 8 {
-		ret["on_login_page"] = true
+		ret["on_student_page"] = true
 	}
 
 	ret["view_count"] = m["view"]
 	ret["click_count"] = m["click"]
 
-	if ret["preview_url"] != "" {
+	// ads do not have preview_url
+	if m["name"] != "" {
 		ret["preview_url"] = cfg.Prefix + "/assets/adimg/" + m["name"]
 	}
 

@@ -99,7 +99,7 @@ func UpdateAd(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println(ad)
+	fmt.Println("ad...", ad)
 
 	ret, succ := MysqlClient.UpdateAd(ad.Id, ad.Pending, ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
 	affected, _ := ret.RowsAffected()
@@ -200,7 +200,11 @@ func UploadAd(w http.ResponseWriter, r *http.Request) {
 		path := "./assets/adimg/"
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			log.Println("path does not exist, create path", path)
-			os.MkdirAll(path, os.ModePerm)
+			if err := os.MkdirAll(path, os.ModePerm); err != nil {
+				log.Println("create dir error", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		f, err := os.OpenFile(path+file.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {

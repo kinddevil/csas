@@ -19,7 +19,7 @@ var eurekaAddr string
 // https://github.com/Netflix/eureka/wiki/Eureka-REST-operations
 func Register(ip string, port string, appName string, euredaAdd string) string {
 	eurekaAddr = euredaAdd
-	instanceId := GetUUID()
+	instanceId := port + ":" + GetUUID()
 
 	dir, _ := os.Getwd()
 	data, _ := ioutil.ReadFile(dir + "/templates/regtpl.json")
