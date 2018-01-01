@@ -38,7 +38,7 @@ var Routes = webserver.Routes{
 	webserver.Route{
 		"ListSchools", // Name
 		"GET",         // HTTP method
-		"/schools",    // Route pattern
+		"/school",     // Route pattern
 		ListSchools,
 	},
 }
