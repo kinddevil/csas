@@ -88,12 +88,12 @@ func formatSchoolsResultSet(m map[string]string) interface{} {
 	ret["post"] = m["post"]
 	ret["from"] = m["start_time"]
 	ret["to"] = m["expire_time"]
-	ret["is_payment"] = m["is_payment"]
-	ret["teacher"] = m["teacher_no"]
-	ret["student"] = m["student_no"]
+	ret["is_payment"], _ = strconv.ParseBool(m["is_payment"])
+	ret["teacher"], _ = strconv.Atoi(m["teacher_no"])
+	ret["student"], _ = strconv.Atoi(m["student_no"])
 	ret["contract_id"] = m["contract_id"]
 	ret["contract"] = m["contract"]
-	ret["is_lock"] = m["is_lock"]
+	ret["is_lock"], _ = strconv.ParseBool(m["is_lock"])
 
 	return ret
 }
