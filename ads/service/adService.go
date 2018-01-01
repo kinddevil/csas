@@ -29,7 +29,7 @@ type IAdsClient interface {
 	dbclient.IMysqlClient
 	InsertAd(title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
 	UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
-	GetAdById(id int64) []interface{}
+	GetAdById(id int64) interface{}
 	GetAllAds(page, items int) []interface{}
 	InsertEmptyAd() (sql.Result, bool)
 	SaveUploadFiles(adId int, filename string) (sql.Result, bool)
@@ -267,12 +267,17 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	return ret
 }
 
-func (client *AdsClient) GetAdById(id int64) (ret []interface{}) {
+func (client *AdsClient) GetAdById(id int64) (ret interface{}) {
 	// client.Query(sqlStr, 0)
 
 	GetFieldMap(&UserInfo{1, "name", "other"})
-	ret = dbclient.Query(client.Db, "select ad.*, file.name from "+tableAd+" ad left join ads_files file on ad.id = file.advertising_id where ad.id = ?", formatAdsResultSet, id)
-	ret = ret[:1]
+	dbret := dbclient.Query(client.Db, "select ad.*, file.name from "+tableAd+" ad left join ads_files file on ad.id = file.advertising_id where ad.id = ?", formatAdsResultSet, id)
+	if len(dbret) >= 1 {
+		// ret = ret[:1]
+		ret = dbret[0]
+	} else {
+		ret = map[string]string{}
+	}
 	return
 }
 

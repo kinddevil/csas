@@ -28,7 +28,7 @@ var tableSchool string = "schools"
 type ISchoolsClient interface {
 	dbclient.IMysqlClient
 
-	GetSchoolById(id int64) (ret []interface{})
+	GetSchoolById(id int64) (ret interface{})
 	GetAllSchools(page, items int) (ret []interface{})
 	InsertSchool(name, contact, phone, province, city, county, provinceCode, cityCode, countyCode, addr, fax, email, web, post, from, to, contractId, contract string, isPayment, isLock bool, teacherNo, studentNo int) (sql.Result, bool)
 	UpdateSchool(id int64, name, contact, phone, province, city, county, provinceCode, cityCode, countyCode, addr, fax, email, web, post, from, to, contractId, contract string, isPayment, isLock bool, teacherNo, studentNo int) (sql.Result, bool)
@@ -98,10 +98,13 @@ func formatSchoolsResultSet(m map[string]string) interface{} {
 	return ret
 }
 
-func (client *SchoolsClient) GetSchoolById(id int64) (ret []interface{}) {
-	ret = dbclient.Query(client.Db, "select * from "+tableSchool+" s where s.id = ? and deleted = false", formatSchoolsResultSet, id)
-	if len(ret) > 1 {
-		ret = ret[:1]
+func (client *SchoolsClient) GetSchoolById(id int64) (ret interface{}) {
+	dbret := dbclient.Query(client.Db, "select * from "+tableSchool+" s where s.id = ? and deleted = false", formatSchoolsResultSet, id)
+	if len(dbret) >= 1 {
+		// ret = ret[:1]
+		ret = dbret[0]
+	} else {
+		ret = map[string]string{}
 	}
 	return
 }
