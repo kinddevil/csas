@@ -29,7 +29,7 @@ type IDictsClient interface {
 	dbclient.IMysqlClient
 
 	GetDictById(id int64) (ret interface{})
-	GetAllDicts(page, items int) (ret []interface{})
+	GetAllDicts(page, items int, dtype string) (ret []interface{})
 	InsertDict(name, desc, dtype string) (sql.Result, bool)
 	UpdateDict(id int64, name, desc, dtype string) (sql.Result, bool)
 	DelDictById(id int64) (sql.Result, bool)
@@ -88,16 +88,25 @@ func (client *DictsClient) GetDictById(id int64) (ret interface{}) {
 	return
 }
 
-func (client *DictsClient) GetAllDicts(page, items int) (ret []interface{}) {
+func (client *DictsClient) GetAllDicts(page, items int, dtype string) (ret []interface{}) {
 
 	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
 	// log.Println("school info...", sid, sname, utype)
 
+	clauses := " is_deleted = false "
+	conds := []interface{}{}
+
+	if dtype != "" {
+		clauses = clauses + "and type = ? "
+		conds = append(conds, dtype)
+	}
+
 	if page == 0 {
-		ret = dbclient.Query(client.Db, "select * from "+currentTable+" where is_deleted = false", formatResultSet)
+		ret = dbclient.Query(client.Db, "select * from "+currentTable+" where "+clauses, formatResultSet, conds...)
 	} else {
-		offset := page * items
-		ret = dbclient.Query(client.Db, "select * from "+currentTable+" where is_deleted = false limit ? offset ? ", formatResultSet, strconv.Itoa(items), strconv.Itoa(offset))
+		offset := (page - 1) * items
+		conds = append(conds, strconv.Itoa(items), strconv.Itoa(offset))
+		ret = dbclient.Query(client.Db, "select * from "+currentTable+" where "+clauses+" limit ? offset ? ", formatResultSet, conds...)
 	}
 	return
 }

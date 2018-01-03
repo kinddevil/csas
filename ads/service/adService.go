@@ -289,7 +289,7 @@ func (client *AdsClient) GetAllAds(page, items int) (ret []interface{}) {
 	if page == 0 {
 		ret = dbclient.Query(client.Db, "select * from "+tableAd, formatAdsResultSet)
 	} else {
-		offset := page * items
+		offset := (page - 1) * items
 		ret = dbclient.Query(client.Db, "select * from "+tableAd+" limit ? offset ? ", formatAdsResultSet, strconv.Itoa(items), strconv.Itoa(offset))
 	}
 	return

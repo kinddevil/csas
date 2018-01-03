@@ -117,7 +117,7 @@ func (client *SchoolsClient) GetAllSchools(page, items int) (ret []interface{}) 
 	if page == 0 {
 		ret = dbclient.Query(client.Db, "select * from "+tableSchool+" where deleted = false", formatSchoolsResultSet)
 	} else {
-		offset := page * items
+		offset := (page - 1) * items
 		ret = dbclient.Query(client.Db, "select * from "+tableSchool+" where deleted = false limit ? offset ? ", formatSchoolsResultSet, strconv.Itoa(items), strconv.Itoa(offset))
 	}
 	return

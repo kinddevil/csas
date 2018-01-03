@@ -48,12 +48,13 @@ func GetDicts(w http.ResponseWriter, r *http.Request) {
 	queries := r.URL.Query()
 	log.Println("queries...", queries)
 
+	dtype := queries.Get("type")
 	page, _ := strconv.Atoi(queries.Get("page"))
 	items, _ := strconv.Atoi(queries.Get("items"))
 
 	log.Println(page, items, "page and items...")
 	// if page is 0, then return all
-	data := MysqlClient.GetAllDicts(page, items)
+	data := MysqlClient.GetAllDicts(page, items, dtype)
 
 	ret, _ := json.Marshal(data)
 
