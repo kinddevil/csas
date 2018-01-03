@@ -1,0 +1,31 @@
+{
+  "instance": {
+    "instanceId": "${appName}:${instanceId}",
+    "hostName":"${ipAddress}",
+    "app":"${appName}",
+    "ipAddr":"${ipAddress}",
+    // "vipAddress":"${vipAddress}",
+
+    "vipAddress":"${appName}",
+    "secureVipAddress":"${appName}",
+
+    "secureVipAddress": null,
+    "status":"UP",
+    "port": {"$": "${port}", "@enabled": "true"},
+    "securePort" : {"$": 8443, "@enabled": "false"},
+    "homePageUrl" : "http://${ipAddress}:${port}/",
+    "statusPageUrl": "http://${ipAddress}:${port}/info",
+    "healthCheckUrl": null,
+    "dataCenterInfo" : {
+      "name": "MyOwn",
+      "@class": "com.netflix.appinfo.MyDataCenterInfo",
+      "@class":"com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo"
+    },
+    "leaseInfo": {
+      "evictionDurationInSecs": 90
+    },
+    "metadata": {
+      "instanceId" : "${appName}:${instanceId}"
+    }
+  }
+}

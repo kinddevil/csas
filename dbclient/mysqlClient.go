@@ -229,10 +229,10 @@ func BuildInsert(tableName string, pairs map[string]interface{}) (string, []inte
 	placeHolders := make([]string, 0, length)
 	for k, v := range pairs {
 		vals = append(vals, v)
-		fields = append(fields, k)
+		fields = append(fields, "`"+k+"`")
 		placeHolders = append(placeHolders, "?")
 	}
-	sql := fmt.Sprintf("INSERT INTO %s(%s) values(%s)", tableName, strings.Join(fields, ","), strings.Join(placeHolders, ","))
+	sql := fmt.Sprintf("INSERT INTO `%s`(%s) values(%s)", tableName, strings.Join(fields, ","), strings.Join(placeHolders, ","))
 	return sql, vals
 }
 
@@ -253,17 +253,38 @@ func BuildUpdate(tableName string, pairsVal map[string]interface{}, pairsCond ma
 	// TODO:eliminate null values
 	for k, v := range pairsVal {
 		// targets = append(targets, fmt.Sprintf("%s=?", k))
-		targets = append(targets, k+"=?")
+		targets = append(targets, "`"+k+"`=?")
 		vals = append(vals, v)
 	}
 
 	for k, v := range pairsCond {
 		// conds = append(conds, fmt.Sprintf("%s=?", k))
-		conds = append(conds, k+"=?")
+		conds = append(conds, "`"+k+"`=?")
 		vals = append(vals, v)
 	}
 
-	sql := fmt.Sprintf("UPDATE %s SET %s where %s", tableName, strings.Join(targets, ","), strings.Join(conds, " and "))
+	sql := fmt.Sprintf("UPDATE `%s` SET %s where %s", tableName, strings.Join(targets, ","), strings.Join(conds, " and "))
+
+	return sql, vals
+}
+
+func BuildDelete(tableName string, pairsCond map[string]interface{}) (string, []interface{}) {
+	length := len(pairsCond)
+
+	if length < 1 {
+		panic(fmt.Sprintf("No conditions for delete for table %s !!!", tableName))
+	}
+
+	vals := make([]interface{}, 0, length)
+	conds := make([]string, 0, length)
+
+	for k, v := range pairsCond {
+		// conds = append(conds, fmt.Sprintf("%s=?", k))
+		conds = append(conds, "`"+k+"`=?")
+		vals = append(vals, v)
+	}
+
+	sql := fmt.Sprintf("DELETE FROM `%s` where %s", tableName, strings.Join(conds, " and "))
 
 	return sql, vals
 }
