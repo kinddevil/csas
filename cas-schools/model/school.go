@@ -21,7 +21,7 @@ type School struct {
 	County       string `json:"county"`
 	ProvinceCode string `json:"province_code"`
 	CityCode     string `json:"city_code"`
-	CountyCode   string `json:"conty_code"`
+	CountyCode   string `json:"county_code"`
 	Address      string `json:"address"`
 	Fax          string `json:"fax"`
 	Email        string `json:"email"`

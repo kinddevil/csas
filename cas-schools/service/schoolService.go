@@ -81,6 +81,7 @@ func formatSchoolsResultSet(m map[string]string) interface{} {
 	ret["city"] = m["city"]
 	ret["county"] = m["county"]
 	ret["province_code"] = m["province_code"]
+	ret["county_code"] = m["county_code"]
 	ret["city_code"] = m["city_code"]
 	ret["address"] = m["address"]
 	ret["fax"] = m["fax"]
