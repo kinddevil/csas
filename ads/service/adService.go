@@ -34,6 +34,7 @@ type IAdsClient interface {
 	InsertEmptyAd() (sql.Result, bool)
 	SaveUploadFiles(adId int, filename string) (sql.Result, bool)
 	GetBaseInfo(username string) (int64, string, string)
+	DelAds(ids []int64) (sql.Result, bool)
 
 	SetupDb()
 }
@@ -221,7 +222,7 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	ret := map[string]interface{}{}
 	log.Println("query ad return...", m)
 
-	ret["id"] = m["id"]
+	ret["id"], _ = strconv.ParseInt(m["id"], 10, 64)
 	ret["title"] = m["title"]
 	ret["from"] = m["start_time"]
 	ret["to"] = m["expire_time"]
@@ -271,7 +272,7 @@ func (client *AdsClient) GetAdById(id int64) (ret interface{}) {
 	// client.Query(sqlStr, 0)
 
 	GetFieldMap(&UserInfo{1, "name", "other"})
-	dbret := dbclient.Query(client.Db, "select ad.*, file.name from "+tableAd+" ad left join ads_files file on ad.id = file.advertising_id where ad.id = ?", formatAdsResultSet, id)
+	dbret := dbclient.Query(client.Db, "select ad.*, file.name from "+tableAd+" ad left join ads_files file on ad.id = file.advertising_id where ad.id = ? and deleted = false", formatAdsResultSet, id)
 	if len(dbret) >= 1 {
 		// ret = ret[:1]
 		ret = dbret[0]
@@ -286,11 +287,13 @@ func (client *AdsClient) GetAllAds(page, items int) (ret []interface{}) {
 	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
 	// log.Println("school info...", sid, sname, utype)
 
+	log.Println("sql...", "select * from "+tableAd+" where deleted = false ")
+
 	if page == 0 {
-		ret = dbclient.Query(client.Db, "select * from "+tableAd, formatAdsResultSet)
+		ret = dbclient.Query(client.Db, "select * from "+tableAd+" where deleted = false ", formatAdsResultSet)
 	} else {
 		offset := (page - 1) * items
-		ret = dbclient.Query(client.Db, "select * from "+tableAd+" limit ? offset ? ", formatAdsResultSet, strconv.Itoa(items), strconv.Itoa(offset))
+		ret = dbclient.Query(client.Db, "select * from "+tableAd+" where deleted = false limit ? offset ? ", formatAdsResultSet, strconv.Itoa(items), strconv.Itoa(offset))
 	}
 	return
 }
@@ -313,4 +316,27 @@ func (client *AdsClient) SetupDb() {
 	// stmtOut, _ := client.Db.Prepare(sql)
 	// ret, err := stmtOut.Exec()
 	// fmt.Println(ret, err)
+}
+
+func (client *AdsClient) DelAds(ids []int64) (sql.Result, bool) {
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	ids2str := make([]string, len(ids))
+	for i, v := range ids {
+		ids2str[i] = strconv.FormatInt(v, 10)
+	}
+
+	sql, vals := dbclient.BuildUpdateWithOpts(tableAd, dbclient.ParamsPairs(
+		"deleted", true,
+	), nil, nil,
+		"id in "+"("+strings.Join(ids2str, ",")+")",
+	)
+
+	ret := dbclient.Exec(tx, sql, vals...)
+	log.Println(ret)
+	tx.Commit()
+	return ret, true
 }

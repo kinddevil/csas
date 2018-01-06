@@ -68,7 +68,7 @@ func formatResultSet(m map[string]string) interface{} {
 	ret := map[string]interface{}{}
 	log.Println("query dict return...", m)
 
-	ret["id"] = m["id"]
+	ret["id"], _ = strconv.ParseInt(m["id"], 10, 64)
 	ret["name"] = m["key"]
 	ret["description"] = m["desc"]
 	ret["type"] = m["type"]

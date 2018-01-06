@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `cas`.`advertising` (
   `create_time` TIMESTAMP NOT NULL,
   `update_time` TIMESTAMP NULL DEFAULT now(),
   `title` VARCHAR(512) NULL,
-  `delete` INT NULL COMMENT 'is deleted',
+  `deleted` TINYINT NULL DEFAULT 0 COMMENT 'is deleted',
   `pending` INT NULL COMMENT 'is lock or not',
   `click` BIGINT NULL COMMENT 'click count',
   `view` BIGINT NULL COMMENT 'view count',

@@ -24,7 +24,7 @@ var Routes = webserver.Routes{
 	webserver.Route{
 		"GetAds", // Name
 		"GET",    // HTTP method
-		"/ads",   // Route pattern
+		"/ad",    // Route pattern
 		GetAds,
 	},
 
@@ -47,5 +47,12 @@ var Routes = webserver.Routes{
 		"POST",              // HTTP method
 		"/ad/{adId}/upload", // Route pattern
 		UploadAd,
+	},
+
+	webserver.Route{
+		"DeleteAds", // Name
+		"DELETE",    // HTTP method
+		"/ad",       // Route pattern
+		DeleteAds,
 	},
 }

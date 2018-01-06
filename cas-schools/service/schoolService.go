@@ -73,7 +73,7 @@ func formatSchoolsResultSet(m map[string]string) interface{} {
 	ret := map[string]interface{}{}
 	log.Println("query school return...", m)
 
-	ret["id"] = m["id"]
+	ret["id"], _ = strconv.ParseInt(m["id"], 10, 64)
 	ret["name"] = m["name"]
 	ret["contact"] = m["contact"]
 	ret["phone"] = m["phone"]
