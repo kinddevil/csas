@@ -33,6 +33,7 @@ type ISchoolsClient interface {
 	InsertSchool(name, contact, phone, province, city, county, provinceCode, cityCode, countyCode, addr, fax, email, web, post, from, to, contractId, contract string, isPayment, isLock bool, teacherNo, studentNo int) (sql.Result, bool)
 	UpdateSchool(id int64, name, contact, phone, province, city, county, provinceCode, cityCode, countyCode, addr, fax, email, web, post, from, to, contractId, contract string, isPayment, isLock bool, teacherNo, studentNo int) (sql.Result, bool)
 	DelSchoolById(id int64) (sql.Result, bool)
+	DelSchools(ids []int64) (sql.Result, bool)
 
 	GetBaseInfo(username string) (int64, string, string)
 }
@@ -214,6 +215,29 @@ func (client *SchoolsClient) DelSchoolById(id int64) (sql.Result, bool) {
 	), dbclient.ParamsPairs(
 		"id", id,
 	),
+	)
+
+	ret := dbclient.Exec(tx, sql, vals...)
+	log.Println(ret)
+	tx.Commit()
+	return ret, true
+}
+
+func (client *SchoolsClient) DelSchools(ids []int64) (sql.Result, bool) {
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	ids2str := make([]string, len(ids))
+	for i, v := range ids {
+		ids2str[i] = strconv.FormatInt(v, 10)
+	}
+
+	sql, vals := dbclient.BuildUpdateWithOpts(tableSchool, dbclient.ParamsPairs(
+		"deleted", true,
+	), nil, nil,
+		"id in "+"("+strings.Join(ids2str, ",")+")",
 	)
 
 	ret := dbclient.Exec(tx, sql, vals...)

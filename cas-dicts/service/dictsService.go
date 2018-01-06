@@ -34,6 +34,7 @@ type IDictsClient interface {
 	UpdateDict(id int64, name, desc, dtype string) (sql.Result, bool)
 	DelDictById(id int64) (sql.Result, bool)
 	DelDictByIdReal(id int64) (sql.Result, bool)
+	DelDicts(ids []int64) (sql.Result, bool)
 
 	GetBaseInfo(username string) (int64, string, string)
 }
@@ -180,6 +181,29 @@ func (client *DictsClient) DelDictByIdReal(id int64) (sql.Result, bool) {
 	sql, vals := dbclient.BuildDelete(currentTable, dbclient.ParamsPairs(
 		"id", id,
 	),
+	)
+
+	ret := dbclient.Exec(tx, sql, vals...)
+	log.Println(ret)
+	tx.Commit()
+	return ret, true
+}
+
+func (client *DictsClient) DelDicts(ids []int64) (sql.Result, bool) {
+	tx, err := client.Db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	ids2str := make([]string, len(ids))
+	for i, v := range ids {
+		ids2str[i] = strconv.FormatInt(v, 10)
+	}
+
+	sql, vals := dbclient.BuildUpdateWithOpts(currentTable, dbclient.ParamsPairs(
+		"is_deleted", true,
+	), nil, nil,
+		"id in "+"("+strings.Join(ids2str, ",")+")",
 	)
 
 	ret := dbclient.Exec(tx, sql, vals...)

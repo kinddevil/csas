@@ -162,3 +162,38 @@ func DelSchool(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+
+func DelSchools(w http.ResponseWriter, r *http.Request) {
+	data := make(map[string][]int64)
+	log.Println("ids...", data)
+	log.Println("delete schools body...", r.Body)
+	err := json.NewDecoder(r.Body).Decode(&data)
+	log.Println(err)
+	log.Println("json schools ids decoded...", data)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if ids, ok := data["ids"]; ok {
+		ret, succ := MysqlClient.DelSchools(ids)
+		affected, _ := ret.RowsAffected()
+		if succ && affected >= 0 {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("1"))
+		} else {
+			w.WriteHeader(503)
+			w.Write([]byte("-1"))
+		}
+		return
+	} else {
+		http.Error(w, "no ids in body to delete...", http.StatusBadRequest)
+		log.Println("no ids in body to delete......")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("1"))
+	return
+}

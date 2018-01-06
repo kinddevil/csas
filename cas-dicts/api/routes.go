@@ -41,4 +41,11 @@ var Routes = webserver.Routes{
 		"/dictionary/{dictId}", // Route pattern
 		DelDict,
 	},
+
+	webserver.Route{
+		"DelDicts",    // Name
+		"DELETE",      // HTTP method
+		"/dictionary", // Route pattern
+		DelDicts,
+	},
 }

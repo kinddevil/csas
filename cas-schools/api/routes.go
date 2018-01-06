@@ -29,6 +29,13 @@ var Routes = webserver.Routes{
 	},
 
 	webserver.Route{
+		"DelSchools", // Name
+		"DELETE",     // HTTP method
+		"/school",    // Route pattern
+		DelSchools,
+	},
+
+	webserver.Route{
 		"EditSchool", // Name
 		"PUT",        // HTTP method
 		"/school",    // Route pattern

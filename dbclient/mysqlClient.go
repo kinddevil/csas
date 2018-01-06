@@ -238,11 +238,15 @@ func BuildInsert(tableName string, pairs map[string]interface{}) (string, []inte
 
 func BuildUpdate(tableName string, pairsVal map[string]interface{}, pairsCond map[string]interface{}) (string, []interface{}) {
 
+	return BuildUpdateWithOpts(tableName, pairsVal, pairsCond, nil, "")
+}
+
+func BuildUpdateWithOpts(tableName string, pairsVal map[string]interface{}, pairsCond map[string]interface{}, pairsOpt map[string]interface{}, selfDef string) (string, []interface{}) {
 	lenVal := len(pairsVal)
 	lenCond := len(pairsCond)
 	length := lenVal + lenCond
 
-	if lenCond < 1 {
+	if lenCond < 1 && selfDef == "" {
 		panic(fmt.Sprintf("No conditions for update for table %s !!!", tableName))
 	}
 
@@ -259,19 +263,35 @@ func BuildUpdate(tableName string, pairsVal map[string]interface{}, pairsCond ma
 
 	for k, v := range pairsCond {
 		// conds = append(conds, fmt.Sprintf("%s=?", k))
-		conds = append(conds, "`"+k+"`=?")
-		vals = append(vals, v)
+		if opt, ok := pairsOpt[k]; ok {
+			conds = append(conds, "`"+k+"`"+opt.(string)+"?")
+			vals = append(vals, v)
+		} else {
+			conds = append(conds, "`"+k+"`=?")
+			vals = append(vals, v)
+		}
 	}
 
-	sql := fmt.Sprintf("UPDATE `%s` SET %s where %s", tableName, strings.Join(targets, ","), strings.Join(conds, " and "))
+	condStr := ""
+	if len(conds) > 0 {
+		condStr = "and " + strings.Join(conds, " and ")
+	}
+	if selfDef != "" {
+		selfDef = " and " + selfDef
+	}
+	sql := fmt.Sprintf("UPDATE `%s` SET %s where 1=1 %s %s ", tableName, strings.Join(targets, ","), condStr, selfDef)
 
 	return sql, vals
 }
 
 func BuildDelete(tableName string, pairsCond map[string]interface{}) (string, []interface{}) {
+	return BuildDeleteWithOpts(tableName, pairsCond, nil, "")
+}
+
+func BuildDeleteWithOpts(tableName string, pairsCond map[string]interface{}, pairsOpt map[string]interface{}, selfDef string) (string, []interface{}) {
 	length := len(pairsCond)
 
-	if length < 1 {
+	if length < 1 && selfDef == "" {
 		panic(fmt.Sprintf("No conditions for delete for table %s !!!", tableName))
 	}
 
@@ -280,11 +300,23 @@ func BuildDelete(tableName string, pairsCond map[string]interface{}) (string, []
 
 	for k, v := range pairsCond {
 		// conds = append(conds, fmt.Sprintf("%s=?", k))
-		conds = append(conds, "`"+k+"`=?")
-		vals = append(vals, v)
+		if opt, ok := pairsOpt[k]; ok {
+			conds = append(conds, "`"+k+"` "+opt.(string)+"?")
+			vals = append(vals, v)
+		} else {
+			conds = append(conds, "`"+k+"`=?")
+			vals = append(vals, v)
+		}
 	}
 
-	sql := fmt.Sprintf("DELETE FROM `%s` where %s", tableName, strings.Join(conds, " and "))
+	condStr := ""
+	if len(conds) > 0 {
+		condStr = "and " + strings.Join(conds, " and ")
+	}
+	if selfDef != "" {
+		selfDef = " and " + selfDef
+	}
+	sql := fmt.Sprintf("DELETE FROM `%s` where 1=1 and %s and %s", tableName, condStr, selfDef)
 
 	return sql, vals
 }
