@@ -42,12 +42,12 @@ var Routes = webserver.Routes{
 		UpdateAd,
 	},
 
-	webserver.Route{
-		"AdsUpload",         // Name
-		"POST",              // HTTP method
-		"/ad/{adId}/upload", // Route pattern
-		UploadAd,
-	},
+	// webserver.Route{
+	// 	"AdsUpload",         // Name
+	// 	"POST",              // HTTP method
+	// 	"/ad/{adId}/upload", // Route pattern
+	// 	UploadAd,
+	// },
 
 	webserver.Route{
 		"DeleteAds", // Name

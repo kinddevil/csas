@@ -27,8 +27,8 @@ var tableAd string = "advertising"
 
 type IAdsClient interface {
 	dbclient.IMysqlClient
-	InsertAd(title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
-	UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
+	InsertAd(title, province, city, startTime, expireTime, schoolIds, imgIds, imgNames, imgLinks string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
+	UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds, imgIds, imgNames, imgLinks string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool)
 	GetAdById(id int64) interface{}
 	GetAllAds(page, items int) []interface{}
 	InsertEmptyAd() (sql.Result, bool)
@@ -107,7 +107,7 @@ func (client *AdsClient) Query(sqlStr string, args ...interface{}) {
 }
 
 // isAnonymous for login
-func (client *AdsClient) InsertAd(title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
+func (client *AdsClient) InsertAd(title, province, city, startTime, expireTime, schoolIds, imgIds, imgNames, imgLinks string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
 	// bitwise: 0: Anonymous 1 School 2 teacher 3 student
 	log.Println("status...", isAnonymous, isSchool, isTeacher, isStudent)
 	displayPages := 0
@@ -136,6 +136,9 @@ func (client *AdsClient) InsertAd(title, province, city, startTime, expireTime, 
 		"start_time", startTime,
 		"expire_time", expireTime,
 		"school_ids", schoolIds,
+		"img_ids", imgIds,
+		"img_names", imgNames,
+		"img_links", imgLinks,
 		"display_pages", displayPages,
 	),
 	)
@@ -177,7 +180,7 @@ func (client *AdsClient) SaveUploadFiles(adId int, filename string) (sql.Result,
 	return ret, true
 }
 
-func (client *AdsClient) UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
+func (client *AdsClient) UpdateAd(id, pending int, title, province, city, startTime, expireTime, schoolIds, imgIds, imgNames, imgLinks string, isAnonymous, isSchool, isTeacher, isStudent bool) (sql.Result, bool) {
 	// bitwise: 0: Anonymous 1 School 2 teacher 3 student
 	displayPages := 0
 	if isAnonymous {
@@ -207,6 +210,9 @@ func (client *AdsClient) UpdateAd(id, pending int, title, province, city, startT
 		"expire_time", expireTime,
 		"school_ids", schoolIds,
 		"display_pages", displayPages,
+		"img_ids", imgIds,
+		"img_names", imgNames,
+		"img_links", imgLinks,
 		"pending", pending,
 	), dbclient.ParamsPairs(
 		"id", id,
@@ -264,6 +270,18 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	} else {
 		ret["is_lock"] = false
 	}
+
+	ret["image_ids"] = m["img_ids"]
+	ret["image_names"] = m["img_names"]
+	ret["img_links"] = m["img_links"]
+
+	links := strings.Split(m["img_links"], ",")
+	length := len(links)
+	preview_urls := make([]string, length)
+	for i := 0; i < length; i++ {
+		preview_urls[i] = cfg.OssUrl + strings.Trim(links[i], " ")
+	}
+	ret["preview_urls"] = strings.Join(preview_urls, ",")
 
 	return ret
 }

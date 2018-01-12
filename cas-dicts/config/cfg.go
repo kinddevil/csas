@@ -3,7 +3,7 @@ package cfg
 import "os"
 
 const (
-	Prefix = "/dicts"
+	Prefix = "/dicts/v1"
 )
 
 var configs map[string]map[string]string = map[string]map[string]string{

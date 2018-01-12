@@ -3,7 +3,8 @@ package cfg
 import "os"
 
 const (
-	Prefix = "/advertising"
+	Prefix = "/advertising/v1"
+	OssUrl = "https://cas-assets.oss-cn-zhangjiakou.aliyuncs.com/"
 )
 
 var configs map[string]map[string]string = map[string]map[string]string{

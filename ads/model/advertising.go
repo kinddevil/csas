@@ -20,8 +20,10 @@ type Advertising struct {
 	StartTime     string `json:"from"`
 	ExpireTime    string `json:"to"`
 	SchoolIds     string `json:"school_ids"`
-	ImageName     string `json:"image_name"`
-	ImageLink     string `json:"preview_url"`
+	ImageIds      string `json:"image_ids"`
+	ImageNames    string `json:"image_names"`
+	ImageLinks    string `json:"image_links"`
+	PreviewUrls   string `json:"preview_urls"`
 	IsLoginPage   bool   `json:"on_login_page"`
 	IsSchoolPage  bool   `json:"on_school_page"`
 	IsTeacherPage bool   `json:"on_teacher_page"`

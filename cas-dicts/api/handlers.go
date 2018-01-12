@@ -1,9 +1,9 @@
 package api
 
 import (
+	"baseinfo"
 	"cas-dicts/model"
 	"cas-dicts/service"
-	// // "baseinfo"
 	// "dbclient"
 	"encoding/json"
 	// "fmt"
@@ -66,6 +66,13 @@ func GetDicts(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddDict(w http.ResponseWriter, r *http.Request) {
+	username := baseinfo.GetUsernameFromHeader(r)
+	if username == "" {
+		log.Println("user name is empty to add dict")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	dict := new(model.Dict)
 	log.Println(dict)
 	log.Println("insert dict body...", r.Body)
@@ -79,26 +86,34 @@ func AddDict(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("dict...", dict)
 
-	// name, contact, phone, province, city, county, provinceCode, cityCode, countyCode, addr, fax, email, web, post, from, to, contractId, contract string, isPayment, isLock bool, teacherNo, studentNo int
-	ret, succ := MysqlClient.InsertDict(dict.Key, dict.Desc, dict.Type)
+	ret, succ := MysqlClient.InsertDict(username, dict.Key, dict.Desc, dict.Type)
+	w.Header().Set("Content-Type", "application/json")
+
+	if !succ {
+		w.WriteHeader(503)
+		w.Write([]byte(strconv.Itoa(-1)))
+		return
+	}
 
 	adId, _ := ret.LastInsertId()
 	log.Println("insert dict ret...", ret, succ)
-	w.Header().Set("Content-Type", "application/json")
-	if succ {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatInt(adId, 10)))
-	} else {
-		w.WriteHeader(503)
-		w.Write([]byte(strconv.Itoa(-1)))
-	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(strconv.FormatInt(adId, 10)))
 	return
 }
 
 func EditDict(w http.ResponseWriter, r *http.Request) {
+	username := baseinfo.GetUsernameFromHeader(r)
+	if username == "" {
+		log.Println("user name is empty to add dict")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	dict := new(model.Dict)
 	log.Println(dict)
-	log.Println("insert dict body...", r.Body)
+	log.Println("edit dict body...", r.Body)
 	err := json.NewDecoder(r.Body).Decode(dict)
 	log.Println(err)
 	log.Println("json dict decoded...", dict)
@@ -115,12 +130,20 @@ func EditDict(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, succ := MysqlClient.UpdateDict(dict.Id, dict.Key, dict.Desc, dict.Type)
+	ret, succ := MysqlClient.UpdateDict(dict.Id, username, dict.Key, dict.Desc, dict.Type)
+	w.Header().Set("Content-Type", "application/json")
+
+	if !succ {
+		w.WriteHeader(503)
+		w.Write([]byte("-1"))
+		return
+	}
+
 	affected, _ := ret.RowsAffected()
 	log.Println("affected...", affected)
 	log.Println("update ret...", ret, succ)
-	w.Header().Set("Content-Type", "application/json")
-	if succ && affected >= 0 {
+
+	if affected >= 0 {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("1"))
 	} else {

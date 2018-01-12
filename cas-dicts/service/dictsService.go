@@ -30,8 +30,8 @@ type IDictsClient interface {
 
 	GetDictById(id int64) (ret interface{})
 	GetAllDicts(page, items int, dtype string) (ret []interface{})
-	InsertDict(name, desc, dtype string) (sql.Result, bool)
-	UpdateDict(id int64, name, desc, dtype string) (sql.Result, bool)
+	InsertDict(username, name, desc, dtype string) (sql.Result, bool)
+	UpdateDict(id int64, username, name, desc, dtype string) (sql.Result, bool)
 	DelDictById(id int64) (sql.Result, bool)
 	DelDictByIdReal(id int64) (sql.Result, bool)
 	DelDicts(ids []int64) (sql.Result, bool)
@@ -74,6 +74,11 @@ func formatResultSet(m map[string]string) interface{} {
 	ret["type"] = m["type"]
 	ret["value"] = m["value"]
 	ret["status"] = m["status"]
+	if m["school_id"] == "0" {
+		ret["school_id"] = ""
+	} else {
+		ret["school_id"] = m["school_id"]
+	}
 
 	return ret
 }
@@ -112,11 +117,21 @@ func (client *DictsClient) GetAllDicts(page, items int, dtype string) (ret []int
 	return
 }
 
-func (client *DictsClient) InsertDict(name, desc, dtype string) (sql.Result, bool) {
+func (client *DictsClient) InsertDict(username, name, desc, dtype string) (sql.Result, bool) {
+	sid, sname, stype := baseinfo.GetSchoolInfoFromUser(client.Db, username)
+
+	if stype == "" {
+		log.Println("there is no user or invalid user with no type")
+		return nil, false
+	}
+
+	log.Println("baseinfo...", sid, sname, stype)
+
 	sql, vals := dbclient.BuildInsert(currentTable, dbclient.ParamsPairs(
 		"key", name,
 		"desc", desc,
 		"type", dtype,
+		"school_id", sid,
 		"is_deleted", false,
 		"create_time", time.Now(),
 	),
@@ -132,7 +147,9 @@ func (client *DictsClient) InsertDict(name, desc, dtype string) (sql.Result, boo
 	return ret, true
 }
 
-func (client *DictsClient) UpdateDict(id int64, name, desc, dtype string) (sql.Result, bool) {
+func (client *DictsClient) UpdateDict(id int64, username, name, desc, dtype string) (sql.Result, bool) {
+	sid, _, _ := baseinfo.GetSchoolInfoFromUser(client.Db, username)
+
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
@@ -142,6 +159,7 @@ func (client *DictsClient) UpdateDict(id int64, name, desc, dtype string) (sql.R
 		"key", name,
 		"desc", desc,
 		"type", dtype,
+		"school_id", sid,
 	), dbclient.ParamsPairs(
 		"id", id,
 	),

@@ -70,7 +70,7 @@ func InsertAd(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println(ad)
 	// title, province, city, startTime, expireTime, schoolIds string, isAnonymous/login, isSchool, isTeacher, isStudent bool
-	ret, succ := MysqlClient.InsertAd(ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
+	ret, succ := MysqlClient.InsertAd(ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.ImageIds, ad.ImageNames, ad.ImageLinks, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
 	adId, _ := ret.LastInsertId()
 	fmt.Println("insert ret...", ret, succ)
 	w.Header().Set("Content-Type", "application/json")
@@ -101,7 +101,7 @@ func UpdateAd(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("ad...", ad)
 
-	ret, succ := MysqlClient.UpdateAd(ad.Id, ad.Pending, ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
+	ret, succ := MysqlClient.UpdateAd(ad.Id, ad.Pending, ad.Title, ad.Province, ad.City, ad.StartTime, ad.ExpireTime, ad.SchoolIds, ad.ImageIds, ad.ImageNames, ad.ImageLinks, ad.IsLoginPage, ad.IsSchoolPage, ad.IsTeacherPage, ad.IsStudentPage)
 	affected, _ := ret.RowsAffected()
 	log.Println("affected...", affected)
 	fmt.Println("update ret...", ret, succ)
@@ -170,7 +170,8 @@ func UploadAd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := r.MultipartForm
-	files := m.File["data"]
+	files := m.File["file_upload_name"]
+	// file_upload_name file_upload_update
 
 	log.Println("multipar form...", m.Value)
 	log.Println(r.Body)
