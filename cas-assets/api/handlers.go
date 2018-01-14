@@ -82,7 +82,7 @@ func UploadAssetsToOss(w http.ResponseWriter, r *http.Request) {
 		}
 
 		id := ""
-		if len(keys) > i {
+		if len(keys) > i && keys[i] != "" {
 			id = keys[i]
 		} else {
 			id = uuid.NewV4().String()

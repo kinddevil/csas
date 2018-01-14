@@ -106,6 +106,7 @@ func Query(db *sql.DB, sqlStr string, parseFun func(map[string]string) interface
 	defer stmtOut.Close()
 
 	rows, err := stmtOut.Query(args...)
+	defer rows.Close()
 	checkErr(err)
 	columns, err := rows.Columns()
 	checkErr(err)
@@ -163,6 +164,7 @@ func QueryWithTran(tx *sql.Tx, sqlStr string, parseFun func(map[string]string) i
 	defer stmtOut.Close()
 
 	rows, err := stmtOut.Query(args...)
+	defer rows.Close()
 	checkErr(err)
 	columns, err := rows.Columns()
 	checkErr(err)
@@ -316,7 +318,7 @@ func BuildDeleteWithOpts(tableName string, pairsCond map[string]interface{}, pai
 	if selfDef != "" {
 		selfDef = " and " + selfDef
 	}
-	sql := fmt.Sprintf("DELETE FROM `%s` where 1=1 and %s and %s", tableName, condStr, selfDef)
+	sql := fmt.Sprintf("DELETE FROM `%s` where 1=1 %s %s", tableName, condStr, selfDef)
 
 	return sql, vals
 }

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	// "reflect"
 	"strconv"
-	// "strings"
+	"strings"
 )
 
 const (
@@ -27,7 +27,7 @@ func GetUsernameFromHeader(r *http.Request) string {
 	// for k, v := range r.Header {
 	// 	log.Println(k, v)
 	// }
-	return username
+	return strings.Trim(username, " ")
 }
 
 func GetSchoolInfoFromUser(db *sql.DB, username string) (int64, string, string) {
