@@ -241,9 +241,12 @@ func (client *RolesClient) InsertRole(pname, username, permissions string, usern
 		}
 		userCheckCond := " and username in " + "(" + strings.Join(userChecks, ",") + ")"
 		if sid == 0 {
-			userCheckCond = userCheckCond + " and school_id is not null "
+			// if it is super admin, must be admin or school-admin
+			// userCheckCond = userCheckCond + " and school_id is not null "
+			userCheckCond = userCheckCond + " and type not like '%admin' "
 		} else {
-			userCheckCond = userCheckCond + fmt.Sprintf(" and school_id=%v ", sid)
+			// if it is not super admin, school id must be the same
+			userCheckCond = userCheckCond + fmt.Sprintf(" and school_id!=%v ", sid)
 		}
 
 		// Check school...
@@ -306,9 +309,12 @@ func (client *RolesClient) UpdateRole(id int64, pname, username, permissions str
 		}
 		userCheckCond := " and username in " + "(" + strings.Join(userChecks, ",") + ")"
 		if sid == 0 {
-			userCheckCond = userCheckCond + " and school_id is not null "
+			// if it is super admin, must be admin or school-admin
+			// userCheckCond = userCheckCond + " and school_id is not null "
+			userCheckCond = userCheckCond + " and type not like '%admin' "
 		} else {
-			userCheckCond = userCheckCond + fmt.Sprintf(" and school_id=%v ", sid)
+			// if it is not super admin, school id must be the same
+			userCheckCond = userCheckCond + fmt.Sprintf(" and school_id!=%v ", sid)
 		}
 
 		// Check school...

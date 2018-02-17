@@ -257,8 +257,8 @@ func formatAdsResultSet(m map[string]string) interface{} {
 		ret["on_student_page"] = true
 	}
 
-	ret["view_count"] = m["view"]
-	ret["click_count"] = m["click"]
+	ret["view_count"], _ = strconv.Atoi(m["view"])
+	ret["click_count"], _ = strconv.Atoi(m["click"])
 
 	// ads do not have preview_url
 	if m["name"] != "" {
@@ -266,9 +266,9 @@ func formatAdsResultSet(m map[string]string) interface{} {
 	}
 
 	if m["pending"] == "1" {
-		ret["is_lock"] = true
+		ret["is_lock"] = 1
 	} else {
-		ret["is_lock"] = false
+		ret["is_lock"] = 0
 	}
 
 	ret["image_ids"] = m["img_ids"]

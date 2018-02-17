@@ -1,0 +1,21 @@
+
+2017/10/11 20:46:57 Starting HTTP service at 6767
+2017/10/11 20:46:57 Starting HTTP service at 6767
+2017/10/11 20:46:58 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:47:03 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:52:28 Starting HTTP service at 6767
+2017/10/11 20:52:28 Starting HTTP service at 6767
+2017/10/11 20:52:50 Starting HTTP service at 6767
+2017/10/11 20:52:50 Starting HTTP service at 6767
+2017/10/11 20:52:50 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:52:55 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:01 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:06 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:11 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:16 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:21 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:53:27 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:56:38 Starting HTTP service at 6767
+2017/10/11 20:56:38 Starting HTTP service at 6767
+2017/10/11 20:56:38 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
+2017/10/11 20:56:43 HTTP request failed: dial tcp [::1]:8761: getsockopt: connection refused
