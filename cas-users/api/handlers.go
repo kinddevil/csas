@@ -66,8 +66,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	var target *BaseInfo
 	user := data.(map[string]interface{})
+	log.Println("user...", user)
 	if len(user) > 0 {
-		school_id, _ := strconv.ParseInt(user["school_id"].(string), 10, 64)
+		school_id := int64(user["school_id"].(int))
 		target = &BaseInfo{school_id, user["school_name"].(string), user["type"].(string)}
 	}
 	err := validOperation(OP_VIEW, &BaseInfo{sid, sname, stype}, target)
@@ -146,6 +147,12 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 	log.Println(err)
 	log.Println("json user decoded...", user)
 
+	if err := user.Validate(); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -181,6 +188,12 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(user)
 	log.Println(err)
 	log.Println("json user decoded...", user)
+
+	if err := user.Validate(); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

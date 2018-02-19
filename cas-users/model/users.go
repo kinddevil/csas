@@ -1,6 +1,8 @@
 package model
 
 import (
+	"errors"
+	"strings"
 	"time"
 )
 
@@ -27,4 +29,11 @@ type User struct {
 	CreateTime       time.Time `json:"create_time"`
 	UpdateTime       time.Time `json:"update_time"`
 	PassVersion      string    `json::"pass_version"`
+}
+
+func (user *User) Validate() error {
+	if strings.Trim(user.Username, " ") == "" {
+		return errors.New("username is empty")
+	}
+	return nil
 }

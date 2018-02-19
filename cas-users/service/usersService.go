@@ -80,7 +80,8 @@ func formatResultSet(m map[string]string) interface{} {
 	ret["activationkey"] = m["activationkey"]
 	ret["resetpasswordkey"] = m["resetpasswordkey"]
 
-	ret["school_id"] = m["school_id"]
+	school_id, _ := strconv.Atoi(m["school_id"])
+	ret["school_id"] = school_id
 	ret["school_name"] = m["school_name"]
 	ret["type"] = m["type"]
 	ret["phone"] = m["phone"]
@@ -98,12 +99,45 @@ func formatResultSet(m map[string]string) interface{} {
 
 	ret["prname"] = m["pname"]
 	ret["prid"] = m["pid"]
+	ret["permission_ids"] = m["ppermission_ids"]
 	return ret
 }
 
-func formatUserWithRole(userroles []interface{}) []interface{} {
+func formatSchoolsResultSet(m map[string]string) interface{} {
+	ret := map[string]interface{}{}
+	log.Println("query school return...", m)
+
+	ret["id"], _ = strconv.ParseInt(m["id"], 10, 64)
+	ret["name"] = m["name"]
+	ret["contact"] = m["contact"]
+	ret["phone"] = m["phone"]
+	ret["province"] = m["province"]
+	ret["city"] = m["city"]
+	ret["county"] = m["county"]
+	ret["province_code"] = m["province_code"]
+	ret["county_code"] = m["county_code"]
+	ret["city_code"] = m["city_code"]
+	ret["address"] = m["address"]
+	ret["fax"] = m["fax"]
+	ret["email"] = m["email"]
+	ret["web"] = m["web"]
+	ret["post"] = m["post"]
+	ret["from"] = m["start_time"]
+	ret["to"] = m["expire_time"]
+	ret["is_payment"], _ = strconv.ParseBool(m["is_payment"])
+	ret["teacher"], _ = strconv.Atoi(m["teacher_no"])
+	ret["student"], _ = strconv.Atoi(m["student_no"])
+	ret["contract_id"] = m["contract_id"]
+	ret["contract"] = m["contract"]
+	ret["is_lock"], _ = strconv.ParseBool(m["is_lock"])
+
+	return ret
+}
+
+func formatUserWithRole(userroles []interface{}, client *UsersClient) []interface{} {
 	users := map[string]interface{}{}
 	ret := make([]interface{}, 0, 10)
+	schools := map[int]interface{}{}
 	for _, v := range userroles {
 		userrole := v.(map[string]interface{})
 
@@ -115,8 +149,25 @@ func formatUserWithRole(userroles []interface{}) []interface{} {
 		log.Println("users...", users, userrole["prname"], userrole["prid"])
 		if userrole["prname"] != "" && userrole["prname"] != nil {
 			privilegeId, _ := strconv.Atoi(userrole["prid"].(string))
-			role := map[string]interface{}{"id": privilegeId, "name": userrole["prname"]}
+			role := map[string]interface{}{"id": privilegeId, "name": userrole["prname"], "permission_ids": userrole["permission_ids"]}
 			users[userrole["username"].(string)].(map[string]interface{})["role"] = append(users[userrole["username"].(string)].(map[string]interface{})["role"].([]map[string]interface{}), role)
+		}
+
+		// Get school info
+		// TODO: add cache here
+		schoolQuery := "select * from schools where id = ? and deleted = false"
+		if userrole["school_id"].(int) > 0 {
+			schoolId := userrole["school_id"].(int)
+			if v, ok := schools[schoolId]; ok {
+				users[userrole["username"].(string)].(map[string]interface{})["school_info"] = v
+			} else {
+				ret := dbclient.Query(client.Db, schoolQuery, formatSchoolsResultSet, userrole["school_id"])
+				if len(ret) >= 1 {
+					schools[schoolId] = ret[0]
+					users[userrole["username"].(string)].(map[string]interface{})["school_info"] = ret[0]
+				}
+			}
+
 		}
 	}
 	for _, v := range users {
@@ -126,11 +177,11 @@ func formatUserWithRole(userroles []interface{}) []interface{} {
 }
 
 func (client *UsersClient) GetUserByUsername(username string) (ret interface{}) {
-	query := fmt.Sprintf(`select u.*, p.id as pid, p.name as pname from %v u left join user_privilege up on u.username = up.username
-			left join privilege p on up.privilegeid = p.id where u.username = ? and u.is_deleted = false order by u.username
+	query := fmt.Sprintf(`select u.*, p.id as pid, p.name as pname, p.permission_ids as ppermission_ids from %v u left join user_privilege up on u.username = up.username
+			left join privilege p on up.privilegeid = p.id and p.is_deleted = false where u.username = ? and u.is_deleted = false order by u.username
 				`, currentTable)
 	dbret := dbclient.Query(client.Db, query, formatResultSet, username)
-	dataret := formatUserWithRole(dbret)
+	dataret := formatUserWithRole(dbret, client)
 	if len(dataret) >= 1 {
 		// ret = ret[:1]
 		ret = dataret[0]
@@ -145,8 +196,8 @@ func (client *UsersClient) GetAllUsers(page, items int, schoolId int64, uType, t
 	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
 	// log.Println("school info...", sid, sname, utype)
 
-	query := fmt.Sprintf(`select u.*, p.id as pid, p.name as pname from %v u left join user_privilege up on u.username = up.username
-			left join privilege p on up.privilegeid = p.id
+	query := fmt.Sprintf(`select u.*, p.id as pid, p.name as pname, p.permission_ids as ppermission_ids from %v u left join user_privilege up on u.username = up.username
+			left join privilege p on up.privilegeid = p.id and p.is_deleted = false
 				`, currentTable)
 
 	clauses := " u.is_deleted = false "
@@ -172,7 +223,7 @@ func (client *UsersClient) GetAllUsers(page, items int, schoolId int64, uType, t
 		conds = append(conds, strconv.Itoa(items), strconv.Itoa(offset))
 		ret = dbclient.Query(client.Db, query+" where "+clauses+" limit ? offset ? ", formatResultSet, conds...)
 	}
-	ret = formatUserWithRole(ret)
+	ret = formatUserWithRole(ret, client)
 	return
 }
 

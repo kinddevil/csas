@@ -93,7 +93,7 @@ func getUsersByRoles(client *RolesClient, roleIds []int64) (map[int64][]map[stri
 	inQuery := "(" + strings.Join(roleIdsStr, ",") + ")"
 	sqlStr := `select up.privilegeid, u.username, u.name from user_privilege up
 						left join user u on up.username = u.username
-							where up.privilegeid in ` + inQuery
+							where u.is_deleted = false and up.privilegeid in ` + inQuery
 	ret := make(map[int64][]map[string]string)
 	var pid int
 	var uname sql.NullString
