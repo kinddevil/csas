@@ -48,13 +48,22 @@ func GetDicts(w http.ResponseWriter, r *http.Request) {
 	queries := r.URL.Query()
 	log.Println("queries...", queries)
 
+	username := baseinfo.GetUsernameFromHeader(r)
+	sid, _, stype := MysqlClient.GetBaseInfo(username)
+	if stype == "" {
+		msg := "there is no user or invalid user with no type"
+		log.Println(msg)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
 	dtype := queries.Get("type")
 	page, _ := strconv.Atoi(queries.Get("page"))
 	items, _ := strconv.Atoi(queries.Get("items"))
 
 	log.Println(page, items, "page and items...")
 	// if page is 0, then return all
-	data := MysqlClient.GetAllDicts(page, items, dtype)
+	data := MysqlClient.GetAllDicts(page, items, dtype, sid)
 
 	ret, _ := json.Marshal(data)
 

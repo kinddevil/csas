@@ -29,7 +29,7 @@ type IDictsClient interface {
 	dbclient.IMysqlClient
 
 	GetDictById(id int64) (ret interface{})
-	GetAllDicts(page, items int, dtype string) (ret []interface{})
+	GetAllDicts(page, items int, dtype string, schoolId int64) (ret []interface{})
 	InsertDict(username, name, desc, dtype string) (sql.Result, bool)
 	UpdateDict(id int64, username, name, desc, dtype string) (sql.Result, bool)
 	DelDictById(id int64) (sql.Result, bool)
@@ -94,7 +94,7 @@ func (client *DictsClient) GetDictById(id int64) (ret interface{}) {
 	return
 }
 
-func (client *DictsClient) GetAllDicts(page, items int, dtype string) (ret []interface{}) {
+func (client *DictsClient) GetAllDicts(page, items int, dtype string, schoolId int64) (ret []interface{}) {
 
 	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
 	// log.Println("school info...", sid, sname, utype)
@@ -105,6 +105,11 @@ func (client *DictsClient) GetAllDicts(page, items int, dtype string) (ret []int
 	if dtype != "" {
 		clauses = clauses + "and type = ? "
 		conds = append(conds, dtype)
+	}
+
+	if schoolId > 0 {
+		clauses = clauses + "and school_id = ? "
+		conds = append(conds, schoolId)
 	}
 
 	if page == 0 {

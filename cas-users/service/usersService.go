@@ -204,8 +204,14 @@ func (client *UsersClient) GetAllUsers(page, items int, schoolId int64, uType, t
 	conds := []interface{}{}
 
 	if targetType != "" {
-		clauses = clauses + "and u.type = ? "
-		conds = append(conds, targetType)
+		types := strings.Split(targetType, ",")
+		tQue := make([]string, 0, len(types))
+		for i := range types {
+			tQue = append(tQue, "?")
+			conds = append(conds, i)
+		}
+		typeQuery := strings.Join(tQue, ",")
+		clauses = clauses + "and u.type in (" + typeQuery + ") "
 	}
 
 	if uType == "admin" {
