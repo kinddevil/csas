@@ -206,9 +206,9 @@ func (client *UsersClient) GetAllUsers(page, items int, schoolId int64, uType, t
 	if targetType != "" {
 		types := strings.Split(targetType, ",")
 		tQue := make([]string, 0, len(types))
-		for i := range types {
+		for _, v := range types {
 			tQue = append(tQue, "?")
-			conds = append(conds, i)
+			conds = append(conds, v)
 		}
 		typeQuery := strings.Join(tQue, ",")
 		clauses = clauses + "and u.type in (" + typeQuery + ") "
