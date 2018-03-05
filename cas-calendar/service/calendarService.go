@@ -23,23 +23,26 @@ import (
 	// "net"
 )
 
-var currentTable string = "dict"
+var currentTable string = "calendar"
 
-type IDictsClient interface {
+type ICalendarClient interface {
 	dbclient.IMysqlClient
 
-	GetDictById(id int64) (ret interface{})
-	GetAllDicts(page, items int, dtype string, schoolId int64) (ret []interface{})
-	InsertDict(username, name, desc, dtype string) (sql.Result, bool)
-	UpdateDict(id int64, username, name, desc, dtype string) (sql.Result, bool)
-	DelDictById(id int64) (sql.Result, bool)
-	DelDictByIdReal(id int64) (sql.Result, bool)
-	DelDicts(ids []int64) (sql.Result, bool)
+	GetCalendarById(id, schoolId int64) (ret interface{})
+	GetAllCalendars(page, items int, dtype string, schoolId int64, isVisible string) (ret []interface{})
+
+	InsertCalendar(name string, schoolId int64, desc, ctype string,
+		isActive bool, start, end time.Time, event string, isVisible bool) (sql.Result, bool)
+	UpdateCalendar(id, uschoolId int64, name string, schoolId int64, desc, ctype string,
+		isActive bool, start, end time.Time, event string, isVisible bool) (sql.Result, bool)
+	DelCalendarById(id int64, schoolId int64) (sql.Result, bool)
+	DelCalendarByIdReal(id int64, schoolId int64) (sql.Result, bool)
+	DelCalendars(ids []int64, schoolId int64) (sql.Result, bool)
 
 	GetBaseInfo(username string) (int64, string, string)
 }
 
-type DictsClient struct {
+type CalendarClient struct {
 	dbclient.MysqlClient
 }
 
@@ -60,31 +63,49 @@ func GetFieldMap(obj interface{}) (ret map[string]string) {
 	return
 }
 
-func (client *DictsClient) GetBaseInfo(username string) (int64, string, string) {
+func (client *CalendarClient) GetBaseInfo(username string) (int64, string, string) {
 	return baseinfo.GetSchoolInfoFromUser(client.Db, username)
 }
 
 func formatResultSet(m map[string]string) interface{} {
 	ret := map[string]interface{}{}
-	log.Println("query dict return...", m)
+	log.Println("query calendar return...", m)
 
 	ret["id"], _ = strconv.ParseInt(m["id"], 10, 64)
-	ret["name"] = m["key"]
+	ret["name"] = m["name"]
 	ret["description"] = m["desc"]
 	ret["type"] = m["type"]
-	ret["value"] = m["value"]
-	ret["status"] = m["status"]
-	if m["school_id"] == "0" {
-		ret["school_id"] = ""
+
+	ret["school_id"], _ = strconv.ParseInt(m["school_id"], 10, 64)
+	if m["is_active"] == "0" {
+		ret["is_active"] = false
 	} else {
-		ret["school_id"] = m["school_id"]
+		ret["is_active"] = true
 	}
+
+	if m["is_visible"] == "0" {
+		ret["is_visible"] = false
+	} else {
+		ret["is_visible"] = true
+	}
+
+	ret["start"] = m["start"]
+	ret["end"] = m["end"]
+	ret["events"] = m["events"]
 
 	return ret
 }
 
-func (client *DictsClient) GetDictById(id int64) (ret interface{}) {
-	dbret := dbclient.Query(client.Db, "select * from "+currentTable+" s where s.id = ? and is_deleted = false", formatResultSet, id)
+func fmtDate(tm time.Time) interface{} {
+	if tm == (time.Time{}) {
+		return nil
+	} else {
+		return tm
+	}
+}
+
+func (client *CalendarClient) GetCalendarById(id, schoolId int64) (ret interface{}) {
+	dbret := dbclient.Query(client.Db, "select * from "+currentTable+" s where s.id = ? and deleted = false and school_id = ? ", formatResultSet, id, schoolId)
 	if len(dbret) >= 1 {
 		// ret = ret[:1]
 		ret = dbret[0]
@@ -94,17 +115,25 @@ func (client *DictsClient) GetDictById(id int64) (ret interface{}) {
 	return
 }
 
-func (client *DictsClient) GetAllDicts(page, items int, dtype string, schoolId int64) (ret []interface{}) {
+func (client *CalendarClient) GetAllCalendars(page, items int, ctype string, schoolId int64, isVisible string) (ret []interface{}) {
 
 	// sid, sname, utype := baseinfo.GetSchoolInfoFromUser(client.Db, "admin002")
 	// log.Println("school info...", sid, sname, utype)
 
-	clauses := " is_deleted = false "
+	clauses := " deleted = false "
 	conds := []interface{}{}
 
-	if dtype != "" {
+	if ctype != "" {
 		clauses = clauses + "and type = ? "
-		conds = append(conds, dtype)
+		conds = append(conds, ctype)
+	}
+
+	visible, err := strconv.ParseBool(isVisible)
+	if err == nil {
+		clauses = clauses + "and is_visible = ? "
+		conds = append(conds, visible)
+	} else {
+		log.Println(err)
 	}
 
 	clauses = clauses + "and school_id = ? "
@@ -120,22 +149,22 @@ func (client *DictsClient) GetAllDicts(page, items int, dtype string, schoolId i
 	return
 }
 
-func (client *DictsClient) InsertDict(username, name, desc, dtype string) (sql.Result, bool) {
-	sid, sname, stype := baseinfo.GetSchoolInfoFromUser(client.Db, username)
+func (client *CalendarClient) InsertCalendar(name string, schoolId int64, desc, ctype string,
+	isActive bool, start, end time.Time, event string, isVisible bool) (sql.Result, bool) {
 
-	if stype == "" {
-		log.Println("there is no user or invalid user with no type")
-		return nil, false
-	}
-
-	log.Println("baseinfo...", sid, sname, stype)
+	rstart, rend := fmtDate(start), fmtDate(end)
 
 	sql, vals := dbclient.BuildInsert(currentTable, dbclient.ParamsPairs(
-		"key", name,
+		"name", name,
 		"desc", desc,
-		"type", dtype,
-		"school_id", sid,
-		"is_deleted", false,
+		"type", ctype,
+		"school_id", schoolId,
+		"is_active", isActive,
+		"deleted", false,
+		"start", rstart,
+		"end", rend,
+		"events", event,
+		"is_visible", isVisible,
 		"create_time", time.Now(),
 	),
 	)
@@ -150,39 +179,10 @@ func (client *DictsClient) InsertDict(username, name, desc, dtype string) (sql.R
 	return ret, true
 }
 
-// TODO...
-func (client *DictsClient) InsertDicts(username, name, desc, dtype string) (sql.Result, bool) {
-	sid, sname, stype := baseinfo.GetSchoolInfoFromUser(client.Db, username)
+func (client *CalendarClient) UpdateCalendar(id, uschoolId int64, name string, schoolId int64, desc, ctype string,
+	isActive bool, start, end time.Time, event string, isVisible bool) (sql.Result, bool) {
 
-	if stype == "" {
-		log.Println("there is no user or invalid user with no type")
-		return nil, false
-	}
-
-	log.Println("baseinfo...", sid, sname, stype)
-
-	sql, vals := dbclient.BuildInsert(currentTable, dbclient.ParamsPairs(
-		"key", name,
-		"desc", desc,
-		"type", dtype,
-		"school_id", sid,
-		"is_deleted", false,
-		"create_time", time.Now(),
-	),
-	)
-
-	tx, err := client.Db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	ret := dbclient.Exec(tx, sql, vals...)
-	log.Println(ret)
-	tx.Commit()
-	return ret, true
-}
-
-func (client *DictsClient) UpdateDict(id int64, username, name, desc, dtype string) (sql.Result, bool) {
-	sid, _, _ := baseinfo.GetSchoolInfoFromUser(client.Db, username)
+	rstart, rend := fmtDate(start), fmtDate(end)
 
 	tx, err := client.Db.Begin()
 	if err != nil {
@@ -190,12 +190,19 @@ func (client *DictsClient) UpdateDict(id int64, username, name, desc, dtype stri
 	}
 
 	sql, vals := dbclient.BuildUpdate(currentTable, dbclient.ParamsPairs(
-		"key", name,
+		"name", name,
 		"desc", desc,
-		"type", dtype,
-		"school_id", sid,
+		"type", ctype,
+		"school_id", schoolId,
+		"is_active", isActive,
+		"start", rstart,
+		"end", rend,
+		"events", event,
+		"is_visible", isVisible,
+		"update_time", time.Now(),
 	), dbclient.ParamsPairs(
 		"id", id,
+		"school_id", schoolId,
 	),
 	)
 
@@ -205,27 +212,28 @@ func (client *DictsClient) UpdateDict(id int64, username, name, desc, dtype stri
 	return ret, true
 }
 
-// TODO add schoolId check
-func (client *DictsClient) DelDictById(id int64) (sql.Result, bool) {
+func (client *CalendarClient) DelCalendarById(id int64, schoolId int64) (sql.Result, bool) {
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
 	}
 
 	sql, vals := dbclient.BuildUpdate(currentTable, dbclient.ParamsPairs(
-		"is_deleted", true,
+		"deleted", true,
 	), dbclient.ParamsPairs(
 		"id", id,
+		"school_id", schoolId,
 	),
 	)
 
+	log.Println(sql, id)
 	ret := dbclient.Exec(tx, sql, vals...)
 	log.Println(ret)
 	tx.Commit()
 	return ret, true
 }
 
-func (client *DictsClient) DelDictByIdReal(id int64) (sql.Result, bool) {
+func (client *CalendarClient) DelCalendarByIdReal(id int64, schoolId int64) (sql.Result, bool) {
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
@@ -233,6 +241,7 @@ func (client *DictsClient) DelDictByIdReal(id int64) (sql.Result, bool) {
 
 	sql, vals := dbclient.BuildDelete(currentTable, dbclient.ParamsPairs(
 		"id", id,
+		"school_id", schoolId,
 	),
 	)
 
@@ -242,7 +251,7 @@ func (client *DictsClient) DelDictByIdReal(id int64) (sql.Result, bool) {
 	return ret, true
 }
 
-func (client *DictsClient) DelDicts(ids []int64) (sql.Result, bool) {
+func (client *CalendarClient) DelCalendars(ids []int64, schoolId int64) (sql.Result, bool) {
 	tx, err := client.Db.Begin()
 	if err != nil {
 		panic(err)
@@ -254,8 +263,10 @@ func (client *DictsClient) DelDicts(ids []int64) (sql.Result, bool) {
 	}
 
 	sql, vals := dbclient.BuildUpdateWithOpts(currentTable, dbclient.ParamsPairs(
-		"is_deleted", true,
-	), nil, nil,
+		"is_visible", false,
+	), dbclient.ParamsPairs(
+		"school_id", schoolId,
+	), nil,
 		"id in "+"("+strings.Join(ids2str, ",")+")",
 	)
 
