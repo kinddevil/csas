@@ -25,7 +25,7 @@ import (
 
 var currentTable string = "course"
 
-type ICourseClient interface {
+type ICourseClient interface { 
 	dbclient.IMysqlClient
 
 	GetCourseById(id, schoolId int64) (ret interface{})
