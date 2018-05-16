@@ -55,5 +55,11 @@ func GetEnv() map[string]string {
 	if port != "" {
 		config["port"] = port
 	}
+
+	localIP := os.Getenv("localip")
+	if localIP != "" {
+		config["localIp"] = localIP
+	}
+
 	return config
 }

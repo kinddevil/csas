@@ -46,9 +46,18 @@ var configs map[string]map[string]string = map[string]map[string]string{
 
 func GetEnv() map[string]string {
 	env := os.Getenv("env")
+	port := os.Getenv("port")
+	localIP := os.Getenv("localip")
+	config := configs["dev"]
 	if envs, ok := configs[env]; ok {
-		return envs
-	} else {
-		return configs["dev"]
+		config = envs
 	}
+
+	if port != "" {
+		config["port"] = port
+	}
+	if localIP != "" {
+		config["localIp"] = localIP
+	}
+	return config
 }
